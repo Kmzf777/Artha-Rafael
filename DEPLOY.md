@@ -1,0 +1,103 @@
+# Deploy na Vercel
+
+## Sobe o projeto inteiro, não "só o frontend"
+
+Não há frontend e backend separados. É um Next.js com App Router: as 18 rotas
+de `src/app/api/` viram funções serverless no mesmo deploy das telas. Um único
+projeto na Vercel resolve tudo, e é isso que faz o webhook da Meta funcionar —
+`/api/webhook` passa a ser um endpoint HTTPS público.
+
+## 1. Criar o projeto
+
+Importe `https://github.com/Kmzf777/Artha-Rafael` na Vercel. O framework é
+detectado sozinho; não há build command a customizar.
+
+## 2. Variáveis de ambiente
+
+Todas em **Settings → Environment Variables**, para Production e Preview.
+Os valores estão no `.env.local`, que não vai para o git.
+
+| Variável | Onde conseguir |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Settings → API → Project URL (**sem** `/rest/v1/`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → `service_role` |
+| `WHATSAPP_ACCESS_TOKEN` | Meta → System User token |
+| `WHATSAPP_PHONE_NUMBER_ID` | Meta → WhatsApp → API Setup |
+| `WHATSAPP_BUSINESS_ACCOUNT_ID` | Meta → WhatsApp → API Setup |
+| `META_APP_SECRET` | Meta → App → Configurações básicas |
+| `WEBHOOK_VERIFY_TOKEN` | você inventa; cola igual no painel da Meta |
+| `CRON_SECRET` | você gera; a Vercel manda como `Authorization: Bearer` |
+| `PAINEL_USUARIO` / `PAINEL_SENHA` | **obrigatórias em produção** — ver §5 |
+| `DISPARO_LIMITE_DIARIO` | `250` |
+| `GRAPH_API_VERSION` | `v21.0` |
+
+## 3. Região: `gru1`
+
+`vercel.json` fixa as funções em São Paulo porque o Supabase deste projeto
+responde de lá (confirmado pelo `CF-Ray: …-GRU`). No padrão da Vercel
+(Washington), **toda** consulta ao banco atravessaria o Atlântico duas vezes —
+e `listarCampanhas` faz várias consultas por campanha.
+
+Se o projeto Supabase for recriado em outra região, mude aqui junto.
+
+## 4. Webhook da Meta
+
+Depois do primeiro deploy:
+
+1. Meta → App → WhatsApp → Configuração → Webhook
+   - **Callback URL:** `https://<seu-projeto>.vercel.app/api/webhook`
+   - **Verify token:** o mesmo valor de `WEBHOOK_VERIFY_TOKEN`
+   - Assinar o campo **`messages`**
+2. Inscrever a WABA:
+   ```bash
+   curl -X POST "https://graph.facebook.com/v21.0/<WABA_ID>/subscribed_apps" \
+     -H "Authorization: Bearer <TOKEN>"
+   ```
+   Conferir com `GET` na mesma URL: `data` não pode voltar vazio.
+
+O `GET /api/webhook` responde o `hub.challenge` em texto puro; o `POST` recusa
+com 401 qualquer requisição sem `X-Hub-Signature-256` válido.
+
+## 5. Autenticação do painel — não pule
+
+Publicar sem `PAINEL_USUARIO` e `PAINEL_SENHA` deixa `POST /api/campanhas` e
+`POST /api/mensagens` **abertos na internet**. São as rotas que gastam dinheiro
+e mandam WhatsApp real para a base do cliente.
+
+`src/middleware.ts` põe basic auth em tudo, com duas exceções que têm
+autenticação própria: `/api/webhook` (assinatura HMAC da Meta) e
+`/api/fila/processar` (`CRON_SECRET`). Com as variáveis vazias o middleware
+libera geral — comportamento correto em localhost, inaceitável em produção.
+
+Isto é medida mínima até o B5 trazer contas por pessoa.
+
+## 6. Cron: exige plano Pro
+
+`vercel.json` agenda `/api/fila/processar` a cada 10 minutos. **Cron com
+granularidade menor que um dia é recurso do plano Pro.** No Hobby o
+`vercel.json` é aceito, mas a fila drena uma vez por dia — com lotes de 20, os
+612 leads levariam um mês.
+
+No Hobby, as saídas são: assinar o Pro, usar um cron externo (cron-job.org,
+GitHub Actions) chamando a rota com o header `x-cron-secret`, ou clicar
+"Processar fila agora" na aba Agendamentos.
+
+## 7. Storage
+
+Supabase → Storage → New bucket → nome **`midia`**, com "Public bucket"
+**desligado**. Sem ele o webhook continua funcionando, mas todo anexo recebido
+se perde e `/api/midia/<id>` responde 404.
+
+## 8. Conferir depois do deploy
+
+```bash
+# verificação do webhook (deve devolver 12345 em texto puro)
+curl "https://<projeto>.vercel.app/api/webhook?hub.mode=subscribe&hub.verify_token=<TOKEN>&hub.challenge=12345"
+
+# assinatura inválida (deve devolver 401)
+curl -X POST "https://<projeto>.vercel.app/api/webhook" \
+  -H "x-hub-signature-256: sha256=invalida" -d '{}'
+
+# painel protegido (deve devolver 401)
+curl -o /dev/null -w "%{http_code}\n" "https://<projeto>.vercel.app/api/metrics"
+```
