@@ -9,8 +9,24 @@ projeto na Vercel resolve tudo, e é isso que faz o webhook da Meta funcionar �
 
 ## 1. Criar o projeto
 
-Importe `https://github.com/Kmzf777/Artha-Rafael` na Vercel. O framework é
-detectado sozinho; não há build command a customizar.
+Importe `https://github.com/Kmzf777/Artha-Rafael` na Vercel.
+
+**Root Directory: `./` (o padrão). Não existe pasta `frontend`.** O
+`package.json` e o `next.config.ts` estão na raiz; apontar para qualquer
+subpasta quebra o build. O framework é detectado sozinho e não há build
+command a customizar.
+
+### Só o sistema de mensagem?
+
+Receber e responder mensagem **não depende do cron nem do motor de disparo**.
+Para esse recorte bastam: `NEXT_PUBLIC_SUPABASE_URL`,
+`SUPABASE_SERVICE_ROLE_KEY`, `WHATSAPP_ACCESS_TOKEN`,
+`WHATSAPP_PHONE_NUMBER_ID`, `META_APP_SECRET`, `WEBHOOK_VERIFY_TOKEN`,
+`PAINEL_USUARIO` e `PAINEL_SENHA`.
+
+`CRON_SECRET` e `WHATSAPP_BUSINESS_ACCOUNT_ID` só são lidos quando alguém
+chama a fila ou sincroniza templates — são getters, e não estourarem no boot
+é proposital. Sem eles, Conversas funciona; Disparos e Templates reclamam.
 
 ## 2. Variáveis de ambiente
 
@@ -71,16 +87,23 @@ libera geral — comportamento correto em localhost, inaceitável em produção.
 
 Isto é medida mínima até o B5 trazer contas por pessoa.
 
-## 6. Cron: exige plano Pro
+## 6. Disparo em massa (opcional — não é preciso para mensagens)
 
-`vercel.json` agenda `/api/fila/processar` a cada 10 minutos. **Cron com
-granularidade menor que um dia é recurso do plano Pro.** No Hobby o
-`vercel.json` é aceito, mas a fila drena uma vez por dia — com lotes de 20, os
-612 leads levariam um mês.
+O `vercel.json` **não declara cron**. Cron com granularidade menor que um dia é
+recurso do plano Pro, e o sistema de mensagem não precisa dele.
 
-No Hobby, as saídas são: assinar o Pro, usar um cron externo (cron-job.org,
-GitHub Actions) chamando a rota com o header `x-cron-secret`, ou clicar
-"Processar fila agora" na aba Agendamentos.
+Quando o disparo em massa entrar, a fila precisa de alguém que a drene. Três
+saídas, da mais simples à mais automática:
+
+1. **Botão "Processar fila agora"**, na aba Agendamentos. Já existe, processa
+   um lote de 20 por clique.
+2. **Cron externo** (cron-job.org, GitHub Actions) batendo em
+   `POST /api/fila/processar` com o header `x-cron-secret`.
+3. **Cron da Vercel**, no plano Pro. Basta acrescentar de volta ao
+   `vercel.json`:
+   ```json
+   "crons": [{ "path": "/api/fila/processar", "schedule": "*/10 * * * *" }]
+   ```
 
 ## 7. Storage
 
