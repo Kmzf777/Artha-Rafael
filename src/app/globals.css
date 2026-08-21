@@ -1,0 +1,307 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ARTHA SYSTEM — sistema de design
+   Fonte: DESIGN.md (interpretação da linguagem visual da Uber) + spec §3.
+   Duo preto-e-branco. Pílula 999px como assinatura. Cards 16px. Level 0 flat.
+   Único cromático: Ouro Artha, restrito aos cinco papéis da spec §3.2.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tema claro ──────────────────────────────────────────────────────────── */
+:root {
+  /* Superfície */
+  --canvas: #ffffff;
+  --canvas-soft: #efefef;
+  --canvas-softer: #f3f3f3;
+  --surface-pressed: #e2e2e2;
+
+  /* Texto */
+  --ink: #000000;
+  --on-ink: #ffffff;
+  --body: #5e5e5e;
+  --mute: #afafaf;
+  --hairline: #e2e2e2;
+
+  /* Conversão — o preto é a história de conversão do sistema */
+  --primary: #000000;
+  --on-primary: #ffffff;
+
+  /* Ouro Artha — cinco papéis fechados (spec §3.2). Nunca no CTA primário. */
+  --accent: #a8801e;      /* 3,64:1 sobre branco — componente de UI */
+  --accent-text: #83661c; /* 5,41:1 sobre canvas · 4,71:1 sobre --accent-soft (chip) */
+  --accent-soft: #f7efd9;
+  /* Ouro sobre superfície invertida (Card tone="dark", banda promo-card-on-dark).
+     Ali o fundo é --ink, que troca de valor entre os temas — por isso este token
+     é o espelho de --accent-text, não o mesmo valor. Aqui a banda é preta. */
+  --accent-on-ink: #e0ac28; /* 10,1:1 sobre preto */
+
+  --link: #0000ee;
+
+  color-scheme: light;
+}
+
+/* ── Tema escuro ─────────────────────────────────────────────────────────────
+   Não é invenção: é a inversão de polaridade que o próprio DESIGN.md aplica em
+   `hero-band-dark` / `promo-card-on-dark`, estendida ao sistema inteiro. */
+.dark {
+  --canvas: #000000;
+  --canvas-soft: #282828;   /* black-elevated */
+  --canvas-softer: #1f1f1f; /* derivado */
+  --surface-pressed: #3a3a3a; /* derivado */
+
+  --ink: #ffffff;
+  --on-ink: #000000;
+  --body: #afafaf;
+  --mute: #6e6e6e;          /* derivado */
+  --hairline: #4b4b4b;      /* hairline-mid */
+
+  --primary: #ffffff;
+  --on-primary: #000000;
+
+  --accent: #e0ac28;        /* 10,1:1 sobre preto */
+  --accent-text: #e8c978;   /* 13,1:1 sobre preto */
+  --accent-soft: #2a2210;
+  /* No escuro a superfície invertida é BRANCA — o ouro claro daria 1,61:1 ali. */
+  --accent-on-ink: #83661c; /* 5,41:1 sobre branco — espelho de --accent-text claro */
+
+  --link: #8ab4ff;          /* derivado — #0000ee sobre preto dá ~1,3:1 */
+
+  color-scheme: dark;
+}
+
+/* ── Raio, espaçamento, elevação ─────────────────────────────────────────── */
+:root {
+  --r-none: 0px;
+  --r-md: 8px;      /* input — spec §3.1 resolve a contradição do DESIGN.md */
+  --r-lg: 12px;
+  --r-xl: 16px;     /* card canônico */
+  --r-pill: 999px;  /* assinatura: tudo que é interativo */
+  --r-pill-tab: 36px;
+  --r-full: 9999px; /* só avatar e contêiner de ícone circular */
+
+  --s-xxs: 4px;
+  --s-xs: 6px;
+  --s-sm: 8px;
+  --s-md: 12px;
+  --s-lg: 16px;
+  --s-xl: 20px;
+  --s-2xl: 24px;
+  --s-3xl: 32px;
+
+  /* Alvo de toque mínimo — spec §3.4 */
+  --tap: 44px;
+
+  /* Level 0 flat é o padrão. Sombra é exceção. */
+  --elev-1: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --elev-2: 0 4px 16px rgba(0, 0, 0, 0.16);
+  --elev-3: 0 2px 8px rgba(0, 0, 0, 0.16);
+}
+
+/* Sombra preta sobre fundo preto não existe: no escuro, elevação é borda. */
+.dark {
+  --elev-1: 0 0 0 1px var(--hairline);
+  --elev-2: 0 0 0 1px var(--hairline);
+  --elev-3: 0 0 0 1px var(--hairline);
+}
+
+/* ── Escala de tipo ──────────────────────────────────────────────────────────
+   Shorthand `font:` — peso, tamanho/entrelinha, família. Uso: `font: var(--t-…)`
+   ou a classe utilitária de mesmo nome. Sentence-case sempre, sem letter-spacing.
+
+   A família vive em `--artha-sans` (não em `--font-sans`): variável declarada
+   dentro de `@theme inline` não é emitida no `:root`, e o shorthand `font:` sem
+   família é inválido — a declaração inteira seria descartada. */
+:root {
+  --artha-sans: var(--font-inter), system-ui, "Helvetica Neue", Arial, sans-serif;
+  --artha-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --t-display-xxl: 700 52px/64px var(--artha-sans);
+  --t-display-xl: 700 36px/44px var(--artha-sans);
+  --t-display-lg: 700 32px/40px var(--artha-sans);
+  --t-display-md: 700 24px/32px var(--artha-sans);
+  --t-display-sm: 700 20px/28px var(--artha-sans);
+  --t-body-lg: 500 18px/24px var(--artha-sans);
+  --t-body-md: 400 16px/24px var(--artha-sans);
+  --t-body-md-strong: 500 16px/20px var(--artha-sans);
+  --t-body-sm: 400 14px/20px var(--artha-sans);
+  --t-body-sm-strong: 500 14px/16px var(--artha-sans);
+  --t-caption: 400 12px/20px var(--artha-sans);
+  --t-button-md: 500 16px/20px var(--artha-sans);
+  --t-button-lg: 500 18px/24px var(--artha-sans);
+}
+
+/* ── Ponte para o Tailwind ───────────────────────────────────────────────── */
+@theme inline {
+  --font-sans: var(--artha-sans);
+  --font-display: var(--artha-sans);
+  --font-mono: var(--artha-mono);
+
+  /* Base 4px explícita — imune a mudança de font-size da raiz. */
+  --spacing: 4px;
+
+  /* Cores do sistema */
+  --color-canvas: var(--canvas);
+  --color-canvas-soft: var(--canvas-soft);
+  --color-canvas-softer: var(--canvas-softer);
+  --color-surface-pressed: var(--surface-pressed);
+  --color-ink: var(--ink);
+  --color-on-ink: var(--on-ink);
+  --color-body: var(--body);
+  --color-mute: var(--mute);
+  --color-hairline: var(--hairline);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-on-ink: var(--accent-on-ink);
+  --color-link: var(--link);
+
+  /* Aliases semânticos herdados do shadcn, remapeados na paleta Artha. */
+  --color-background: var(--canvas);
+  --color-foreground: var(--ink);
+  --color-card: var(--canvas);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--canvas);
+  --color-popover-foreground: var(--ink);
+  --color-primary-foreground: var(--on-primary);
+  --color-secondary: var(--canvas-soft);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: var(--canvas-soft);
+  --color-muted-foreground: var(--body);
+  --color-border: var(--hairline);
+  --color-input: var(--hairline);
+  --color-ring: var(--accent);
+  --color-destructive: var(--ink);
+
+  /* Raio */
+  --radius-none: var(--r-none);
+  --radius-sm: var(--r-md);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --radius-2xl: var(--r-xl);
+  --radius-3xl: var(--r-xl);
+  --radius-pill: var(--r-pill);
+  --radius-pill-tab: var(--r-pill-tab);
+  --radius-full: var(--r-full);
+
+  /* Elevação */
+  --shadow-elev-1: var(--elev-1);
+  --shadow-elev-2: var(--elev-2);
+  --shadow-elev-3: var(--elev-3);
+}
+
+@layer base {
+  * {
+    border-color: var(--hairline);
+  }
+  html {
+    font-family: var(--artha-sans);
+  }
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font: var(--t-body-md);
+  }
+  /* Um único anel de foco no sistema inteiro — papel 2 do acento. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* Telefone e ID em mono, com dígitos tabulares. */
+  .font-mono,
+  code,
+  kbd,
+  samp {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* ── Escala de tipo como utilitário ────────────────────────────────────
+     Permite que as telas fiquem sem um único literal de tamanho de fonte. */
+  .t-display-xxl { font: var(--t-display-xxl); letter-spacing: 0; }
+  .t-display-xl  { font: var(--t-display-xl);  letter-spacing: 0; }
+  .t-display-lg  { font: var(--t-display-lg);  letter-spacing: 0; }
+  .t-display-md  { font: var(--t-display-md);  letter-spacing: 0; }
+  .t-display-sm  { font: var(--t-display-sm);  letter-spacing: 0; }
+  .t-body-lg        { font: var(--t-body-lg); }
+  .t-body-md        { font: var(--t-body-md); }
+  .t-body-md-strong { font: var(--t-body-md-strong); }
+  .t-body-sm        { font: var(--t-body-sm); }
+  .t-body-sm-strong { font: var(--t-body-sm-strong); }
+  .t-caption        { font: var(--t-caption); }
+  .t-button-md      { font: var(--t-button-md); }
+  .t-button-lg      { font: var(--t-button-lg); }
+
+  /* Números-herói e KPIs: dígitos de largura fixa para não dançarem ao mudar. */
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* ── Elevação ──────────────────────────────────────────────────────────
+     No escuro estes tokens já são hairline em vez de sombra. */
+  .elev-1 { box-shadow: var(--elev-1); }
+  .elev-2 { box-shadow: var(--elev-2); }
+  .elev-3 { box-shadow: var(--elev-3); }
+
+  /* Barra indicadora da aba ativa — papel 1 do Ouro Artha (spec §3.2).
+     3px na borda esquerda da linha de nav. */
+  .nav-indicator {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    height: 24px;
+    width: 3px;
+    transform: translateY(-50%);
+    border-radius: var(--r-pill);
+    background: var(--accent);
+  }
+}
+
+/* ── Fonte de display: alternativa estilística ss01 do Inter ────────────────
+   A nota de substitutos do DESIGN.md pede Inter 700 com "ss01" para aproximar
+   o "a" e o "g" da face de display do doc. */
+.font-display,
+.t-display-xxl,
+.t-display-xl,
+.t-display-lg,
+.t-display-md,
+.t-display-sm {
+  font-feature-settings: "ss01" 1, "cv05" 1;
+}
+
+/* ── Barra de rolagem — monocromática, discreta ──────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--mute); border-radius: var(--r-pill); }
+::-webkit-scrollbar-thumb:hover { background: var(--body); }
+
+.scroll-soft { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.scroll-soft::-webkit-scrollbar-thumb { background: transparent; transition: background 0.2s; }
+.scroll-soft:hover::-webkit-scrollbar-thumb { background: var(--mute); }
+
+/* ── Movimento: uma revelação orquestrada no load, nada além disso ───────── */
+@keyframes artha-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes artha-slide {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.reveal-rise { animation: artha-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.reveal-slide { animation: artha-slide 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-rise, .reveal-slide { animation: none !important; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
