@@ -88,6 +88,22 @@ function Dado({ rotulo, valor, mono }: { rotulo: string; valor: string; mono?: b
 
 export default function AccountInfo() {
   const router = useRouter()
+  const [saindo, setSaindo] = useState(false)
+
+  // Navegar para /login sem apagar o cookie devolveria o operador ao painel no
+  // primeiro clique — a sessão continuaria válida. Quem encerra é a rota.
+  async function sair() {
+    if (saindo) return
+    setSaindo(true)
+    try {
+      await fetch('/api/logout', { method: 'POST' })
+    } catch {
+      // Rede caiu: o cookie pode ter sobrevivido. Melhor mandar para o login e
+      // deixar o middleware decidir do que travar o operador nesta tela.
+    }
+    router.refresh()
+    router.replace('/login')
+  }
   // O alternador da Sidebar e este seletor leem e escrevem o mesmo estado do
   // next-themes — nenhuma lógica de tema é duplicada, só a apresentação muda.
   const { theme, setTheme } = useTheme()
@@ -261,9 +277,9 @@ export default function AccountInfo() {
 
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-hairline pt-6">
           <p className="t-body-sm text-body">Encerrar a sessão devolve você à tela de entrada.</p>
-          <Button variant="subtle" onClick={() => router.push('/login')}>
+          <Button variant="subtle" disabled={saindo} onClick={sair}>
             <LogOut aria-hidden />
-            Encerrar sessão
+            {saindo ? 'Encerrando…' : 'Encerrar sessão'}
           </Button>
         </div>
       </div>

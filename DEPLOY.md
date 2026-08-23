@@ -80,12 +80,28 @@ Publicar sem `PAINEL_USUARIO` e `PAINEL_SENHA` deixa `POST /api/campanhas` e
 `POST /api/mensagens` **abertos na internet**. São as rotas que gastam dinheiro
 e mandam WhatsApp real para a base do cliente.
 
-`src/middleware.ts` põe basic auth em tudo, com duas exceções que têm
-autenticação própria: `/api/webhook` (assinatura HMAC da Meta) e
-`/api/fila/processar` (`CRON_SECRET`). Com as variáveis vazias o middleware
-libera geral — comportamento correto em localhost, inaceitável em produção.
+Com as duas configuradas, `src/middleware.ts` exige sessão em tudo. Sem sessão,
+página redireciona para `/login` e rota de API responde `401` em JSON — nunca
+HTML, senão o `fetch` do painel engasgaria tentando parsear.
 
-Isto é medida mínima até o B5 trazer contas por pessoa.
+O login é uma página do próprio sistema (`/login`), não o diálogo do navegador.
+Ela troca a credencial por um cookie **httpOnly** assinado com HMAC-SHA256,
+válido por 12 horas. A senha é a chave da assinatura, então **trocar a senha
+derruba todas as sessões abertas**.
+
+Três rotas ficam fora da sessão, cada uma com autenticação própria:
+
+| Rota | Como se protege |
+| --- | --- |
+| `/api/webhook` | assinatura HMAC da Meta (`X-Hub-Signature-256`) |
+| `/api/fila/processar` | `CRON_SECRET` no header |
+| `/api/login` · `/api/logout` · `/login` | é onde a sessão nasce e morre |
+
+Com as variáveis vazias o middleware libera geral — comportamento correto em
+localhost, inaceitável em produção.
+
+Isto é medida mínima até o B5 trazer contas por pessoa. Hoje a equipe
+compartilha uma credencial, e por isso nenhuma ação fica atribuída a um nome.
 
 ## 6. Disparo em massa (opcional — não é preciso para mensagens)
 

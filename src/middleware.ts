@@ -1,45 +1,55 @@
-// Basic auth no painel inteiro. Medida MÍNIMA até o B5 trazer autenticação de
-// verdade, e não substituto dela.
+// Proteção de rota do painel.
 //
-// Por que existe: o webhook da Meta exige que a aplicação esteja numa URL
-// pública HTTPS. No instante em que ela está, `/api/campanhas` e
-// `/api/mensagens` ficam abertos na mesma origem — e essas rotas gastam
-// dinheiro e mandam WhatsApp real para a base do cliente. Publicar sem isto é
-// deixar o disparo em massa aberto na internet.
+// Antes daqui isto era basic auth, que funcionava mas abria o diálogo nativo do
+// navegador: sem marca, sem logout, e reaparecendo a cada janela anônima. Agora
+// é sessão por cookie assinado, com página própria em `/login`.
 //
-// Duas exceções, ambas com autenticação própria:
-//   · /api/webhook        — a Meta não manda basic auth; ela assina o corpo com
-//                           HMAC-SHA256, verificado em `meta/assinatura.ts`.
-//   · /api/fila/processar — protegido por CRON_SECRET no header, porque quem
-//                           chama é um cron, não um navegador.
+// O modelo de segurança é o mesmo: UMA credencial compartilhada pela equipe.
+// Contas por pessoa são o recorte B5. O que mudou é a experiência, não o rigor.
+//
+// Por que existe: o webhook exige que a aplicação esteja numa URL pública. No
+// instante em que está, `/api/mensagens` e `/api/campanhas` ficam alcançáveis —
+// e essas rotas gastam dinheiro e mandam WhatsApp real para a base do cliente.
 import { NextResponse, type NextRequest } from 'next/server'
+import { COOKIE_SESSAO, sessaoValida } from '@/lib/sessao'
 
-const LIVRES = ['/api/webhook', '/api/fila/processar']
+/** Rotas que NÃO passam pela sessão, cada uma com autenticação própria. */
+const LIVRES = [
+  '/api/webhook', // a Meta assina o corpo com HMAC (`meta/assinatura.ts`)
+  '/api/fila/processar', // CRON_SECRET no header, chamada por cron
+  '/api/login', // é aqui que a sessão nasce
+  '/api/logout',
+  '/login', // a própria tela de entrada
+]
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
   if (LIVRES.some((rota) => pathname.startsWith(rota))) return NextResponse.next()
 
-  const usuario = process.env.PAINEL_USUARIO
   const senha = process.env.PAINEL_SENHA
+  // Sem credencial configurada o painel fica aberto — modo de desenvolvimento
+  // em localhost. Em produção, configurar é obrigatório (ver DEPLOY.md §5).
+  if (!senha) return NextResponse.next()
 
-  // Sem credencial configurada o painel fica aberto — é o modo de
-  // desenvolvimento em localhost. Em produção, configurar é obrigatório.
-  if (!usuario || !senha) return NextResponse.next()
-
-  const header = req.headers.get('authorization') ?? ''
-  if (header.startsWith('Basic ')) {
-    const [u, s] = atob(header.slice(6)).split(':')
-    if (u === usuario && s === senha) return NextResponse.next()
+  if (await sessaoValida(req.cookies.get(COOKIE_SESSAO)?.value, senha, Date.now())) {
+    return NextResponse.next()
   }
 
-  return new NextResponse('Autenticação necessária.', {
-    status: 401,
-    headers: { 'WWW-Authenticate': 'Basic realm="Artha", charset="UTF-8"' },
-  })
+  // API responde JSON; página redireciona. Mandar HTML de login para um `fetch`
+  // faria o cliente engasgar tentando parsear, em vez de tratar o 401.
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.json({ erro: 'nao_autenticado' }, { status: 401 })
+  }
+
+  const destino = req.nextUrl.clone()
+  destino.pathname = '/login'
+  destino.search = ''
+  // Para onde voltar depois de entrar. Só o caminho — URL absoluta aqui viraria
+  // redirecionamento aberto para outro domínio.
+  if (pathname !== '/') destino.searchParams.set('de', pathname + req.nextUrl.search)
+  return NextResponse.redirect(destino)
 }
 
 export const config = {
-  // Tudo menos os estáticos do Next e o favicon.
   matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.svg).*)'],
 }
