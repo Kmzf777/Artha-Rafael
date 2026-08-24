@@ -190,9 +190,17 @@ Não há tabela de sessão. O passo do roteiro é função pura das mensagens da
 conversa:
 
 ```
-proximoPasso(mensagens, agora) → 'perguntar_p1' | 'perguntar_p2'
-                                | 'repetir' | 'encerrar' | 'calar'
+proximoPasso(mensagens) → { acao: 'perguntar', pergunta }
+                        | { acao: 'repetir', pergunta }
+                        | { acao: 'encerrar', idP1, idP2, comFecho }
+                        | { acao: 'calar' }
 ```
+
+A função **não recebe relógio**: nada na decisão depende de tempo. A janela de
+24h é checada no executor, imediatamente antes do envio, que é onde ela pertence.
+E o retorno é estruturado, não uma string — `perguntar` e `repetir` carregam a
+pergunta pronta, e `encerrar` carrega os ids que a qualificação vai gravar. O
+executor desempacota; não redecide.
 
 Vive em `src/lib/bot/estado.ts`, sem banco e sem rede, testada em vitest. É o
 idioma da casa: `janela24h`, `timeline`, `conversationKey` e `getMetrics` já são
@@ -260,7 +268,7 @@ produção que existe um caminho onde a premissa não valia.
 | Arquivo | Responsabilidade |
 | --- | --- |
 | `src/lib/bot/roteiro.ts` | O roteiro como dado: perguntas, ids, títulos, ramificação, mapa de id → segmento/tag. Puro. |
-| `src/lib/bot/estado.ts` | `proximoPasso(mensagens, agora)`. Puro, sem banco. |
+| `src/lib/bot/estado.ts` | `proximoPasso(mensagens)`. Puro, sem banco. |
 | `src/lib/bot/estado.test.ts` | Os casos da §7.1. |
 | `src/server/bot/executar.ts` | Orquestra: carrega histórico, chama `proximoPasso`, toma a trava, envia, grava. |
 
@@ -435,7 +443,7 @@ A regra passa a ignorar o valor `'bot'` ao calcular `atribuidoA`.
 
 Todos rodam sem banco, sobre listas de mensagens construídas à mão:
 
-1. Conversa vazia + primeiro inbound → `perguntar_p1`.
+1. Conversa vazia + primeiro inbound → `perguntar` a p1.
 2. Bot mandou p1, chegou `p1:artha` → `perguntar_p2` com o ramo de Artha.
 3. Bot mandou p1, chegou `p1:dhana` → `perguntar_p2` com o ramo de Dhana.
 4. Bot mandou p1, chegou `p1:outro` → `encerrar`.
