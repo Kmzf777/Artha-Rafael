@@ -17,6 +17,7 @@ function entrada(extra: Partial<MensagemBot> = {}): MensagemBot {
     content: 'oi',
     button_id: null,
     enviado_por: null,
+    campanha_id: null,
     ...extra,
   }
 }
@@ -33,11 +34,22 @@ function doBot(): MensagemBot {
     content: 'x',
     button_id: null,
     enviado_por: AUTOR_BOT,
+    campanha_id: null,
   }
 }
 
 function doHumano(): MensagemBot {
   return { ...doBot(), enviado_por: 'operacao@artha.ia.br' }
+}
+
+/** Disparo de campanha: outbound sem autoria, como `src/server/fila.ts` grava. */
+function disparo(): MensagemBot {
+  return {
+    ...doBot(),
+    message_type: 'template',
+    enviado_por: null,
+    campanha_id: 'camp-1',
+  }
 }
 
 describe('proximoPasso', () => {
@@ -163,5 +175,73 @@ describe('proximoPasso', () => {
       acao: 'perguntar',
       pergunta: P2_POR_RAMO['p1:artha'],
     })
+  })
+
+  it('17. lead que escreve depois do fecho não ouve a pergunta de novo', () => {
+    const passo = proximoPasso([
+      entrada(),
+      doBot(),
+      botao('p1:artha'),
+      doBot(),
+      botao('p2:testou'),
+      doBot(),
+      entrada({ content: 'obrigado!' }),
+    ])
+    expect(passo.acao).toBe('calar')
+  })
+
+  it('18. botão tocado depois do fecho não reinicia o roteiro', () => {
+    const passo = proximoPasso([
+      entrada(),
+      doBot(),
+      botao('p1:artha'),
+      doBot(),
+      botao('p2:testou'),
+      doBot(),
+      botao('p1:dhana'),
+    ])
+    expect(passo.acao).toBe('calar')
+  })
+
+  it('19. texto depois de p1:outro não repete a p1', () => {
+    const passo = proximoPasso([
+      entrada(),
+      doBot(),
+      botao('p1:outro'),
+      doBot(),
+      entrada({ content: 'era sobre a nota' }),
+    ])
+    expect(passo.acao).toBe('calar')
+  })
+
+  it('20. lead que insiste depois de id desconhecido não ouve o bot', () => {
+    const passo = proximoPasso([
+      entrada(),
+      doBot(),
+      botao('quero_voltar'),
+      entrada({ content: 'olá?' }),
+    ])
+    expect(passo.acao).toBe('calar')
+  })
+
+  it('21. botão fora do roteiro depois da p1 entrega ao humano com o segmento', () => {
+    const passo = proximoPasso([entrada(), doBot(), botao('p1:artha'), doBot(), botao('quero_voltar')])
+    expect(passo).toEqual({
+      acao: 'encerrar',
+      idP1: 'p1:artha',
+      idP2: null,
+      comFecho: false,
+    })
+  })
+
+  it('22. quem responde a um disparo continua sendo primeiro contato', () => {
+    const passo = proximoPasso([disparo(), entrada()])
+    expect(passo).toEqual({ acao: 'perguntar', pergunta: P1 })
+  })
+
+  it('23. resposta manual sem autoria também desliga o bot', () => {
+    const manual: MensagemBot = { ...doBot(), message_type: 'text', enviado_por: null }
+    const passo = proximoPasso([entrada(), doBot(), manual, botao('p1:artha')])
+    expect(passo.acao).toBe('calar')
   })
 })

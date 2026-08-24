@@ -29,6 +29,12 @@ export type MensagemBot = {
   content: string | null
   button_id: string | null
   enviado_por: string | null
+  /**
+   * A campanha que originou a mensagem, quando houver. É o que separa disparo
+   * de resposta humana: as duas coisas gravam `enviado_por` nulo hoje, e sem
+   * este campo um lead que recebeu template nunca veria o bot.
+   */
+  campanha_id: string | null
 }
 
 export type Passo =
@@ -46,12 +52,29 @@ function ehDoBot(m: MensagemBot): boolean {
   return m.direction === 'outbound' && m.enviado_por === AUTOR_BOT
 }
 
+// A checagem é por `campanha_id`, não por `enviado_por !== null`: a resposta
+// manual de operador grava autoria nula hoje (`useMessageSender` não manda
+// `enviadoPor`, e a rota grava `enviadoPor ?? null`), então exigir autoria
+// preenchida deixaria de desligar o bot justamente onde a regra importa. O
+// disparo de campanha também grava autoria nula — só que ele não é fala de
+// ninguém, e a §3.1 manda que receber template continue sendo primeiro contato.
 function ehDeHumano(m: MensagemBot): boolean {
-  return m.direction === 'outbound' && m.enviado_por !== AUTOR_BOT
+  return m.direction === 'outbound' && m.enviado_por !== AUTOR_BOT && m.campanha_id === null
+}
+
+/** Resposta que encerra o roteiro: resposta da p2, `p1:outro`, ou id fora do roteiro. */
+function ehRespostaTerminal(m: MensagemBot): boolean {
+  if (m.direction !== 'inbound' || m.button_id === null) return false
+  return ehIdP2(m.button_id) || m.button_id === 'p1:outro' || !ehIdConhecido(m.button_id)
 }
 
 export function proximoPasso(mensagens: MensagemBot[]): Passo {
-  const ms = [...mensagens].sort((a, b) => a.created_at.localeCompare(b.created_at))
+  // Comparar por `getTime()`, não pela string ISO: `janela24h` e `timeline` já
+  // parseiam, e com offsets diferentes na mesma lista a ordem lexicográfica
+  // inverte a ordem real.
+  const ms = [...mensagens].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  )
   if (ms.length === 0) return CALAR
 
   // Um operador que falou uma vez desliga o bot naquela conversa para sempre.
@@ -72,6 +95,12 @@ export function proximoPasso(mensagens: MensagemBot[]): Passo {
     const entradas = ms.filter((m) => m.direction === 'inbound').length
     return entradas > 1 ? CALAR : { acao: 'perguntar', pergunta: P1 }
   }
+
+  // O roteiro já acabou antes desta mensagem: o bot não fala mais. Sem isto, o
+  // estado terminal evapora assim que o lead escreve depois do fecho, e ele
+  // recebe de volta a pergunta que acabou de responder — o comportamento que
+  // motivou este projeto.
+  if (ms.slice(0, -1).some(ehRespostaTerminal)) return CALAR
 
   // A última resposta VÁLIDA do lead define onde o roteiro está.
   const idP1 = ms.reduce<string | null>((acc, m) => (ehIdP1(m.button_id) ? m.button_id : acc), null)

@@ -62,9 +62,9 @@ export async function mensagensDoCard(key: string): Promise<MensagemUI[]> {
  * Histórico de uma conversa na forma mínima que `proximoPasso` consome.
  *
  * Não reusa `mensagensDoCard`: aquela devolve `MensagemUI`, que não declara
- * `enviado_por` nem `button_id` — justamente os dois campos de que a decisão do
- * bot depende. Selecionar as colunas certas aqui é mais honesto que confiar em
- * campos que vêm no runtime mas não no tipo.
+ * `enviado_por`, `button_id` nem `campanha_id` — justamente os campos de que a
+ * decisão do bot depende. Selecionar as colunas certas aqui é mais honesto que
+ * confiar em campos que vêm no runtime mas não no tipo.
  */
 export async function historicoParaBot(
   phone: string,
@@ -72,7 +72,7 @@ export async function historicoParaBot(
 ): Promise<MensagemBot[]> {
   let q = db()
     .from('messages')
-    .select('direction,created_at,message_type,content,button_id,enviado_por')
+    .select('direction,created_at,message_type,content,button_id,enviado_por,campanha_id')
     .eq('phone', phone)
     .order('created_at', { ascending: true })
   q = phoneId ? q.eq('phone_id', phoneId) : q.is('phone_id', null)
