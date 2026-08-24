@@ -90,6 +90,48 @@ export async function enviarTexto(para: string, texto: string): Promise<Resposta
   })) as RespostaEnvio
 }
 
+/**
+ * Mensagem com botões de resposta. Só vale DENTRO da janela de 24h — quem checa
+ * é o chamador, como em `enviarTexto`.
+ *
+ * Os limites são validados aqui e estouram antes da chamada: descobrir "3 botões
+ * no máximo" por `MetaError` em produção custa uma conversa perdida, e o erro da
+ * Graph para isto não diz qual botão é o problema.
+ */
+export async function enviarBotoes(
+  para: string,
+  corpo: string,
+  botoes: { id: string; titulo: string }[]
+): Promise<RespostaEnvio> {
+  if (botoes.length === 0 || botoes.length > 3) {
+    throw new Error(`enviarBotoes: a Cloud API aceita de 1 a 3 botões, recebi ${botoes.length}`)
+  }
+  for (const b of botoes) {
+    if (b.titulo.length > 20) {
+      throw new Error(`enviarBotoes: título "${b.titulo}" passa de 20 caracteres`)
+    }
+  }
+
+  return (await chamar(`${env.phoneNumberId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      to: para,
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: { text: corpo },
+        action: {
+          buttons: botoes.map((b) => ({
+            type: 'reply',
+            reply: { id: b.id, title: b.titulo },
+          })),
+        },
+      },
+    }),
+  })) as RespostaEnvio
+}
+
 /** Template aprovado. Único envio possível fora da janela de 24h. */
 export async function enviarTemplate(
   para: string,

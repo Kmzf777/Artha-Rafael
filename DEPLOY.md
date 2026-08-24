@@ -7,6 +7,23 @@ de `src/app/api/` viram funções serverless no mesmo deploy das telas. Um únic
 projeto na Vercel resolve tudo, e é isso que faz o webhook da Meta funcionar —
 `/api/webhook` passa a ser um endpoint HTTPS público.
 
+## Migration antes do código, sempre
+
+A migration `supabase/migrations/0002_bot_qualificacao.sql` (coluna
+`messages.button_id` e a tabela-trava `bot_acoes`) precisa estar aplicada no
+SQL Editor do Supabase **antes** de subir o deploy que a usa — mesmo em ambiente
+onde o bot de qualificação (`BOT_QUALIFICACAO`) ainda está `off`.
+
+O motivo é que `inserirMensagem` grava `button_id` em **toda** mensagem de
+entrada no webhook, esteja o bot ligado ou não. Sem a coluna, o PostgREST
+recusa a escrita, `inserirMensagem` relança o erro, e nenhuma mensagem de
+entrada é salva — o bot fica isolado no seu próprio try/catch, mas a inserção
+acontece antes dele e não está.
+
+O sintoma é traiçoeiro: o webhook ainda responde 200 (a Meta considera a
+entrega bem-sucedida e não reenvia), e o número simplesmente fica mudo, sem
+erro visível em lugar nenhum do painel.
+
 ## 1. Criar o projeto
 
 Importe `https://github.com/Kmzf777/Artha-Rafael` na Vercel.

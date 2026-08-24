@@ -9,7 +9,7 @@ A qual dos três produtos do cliente o lead pertence: `artha` (B2C, pessoa físi
 _Avoid_: produto, vertical, linha
 
 **Etapa** (funil):
-Posição do lead no funil comercial: novo → contatado → qualificado → convertido, ou perdido. Muda por ação do operador, não automaticamente.
+Posição do lead no funil comercial: novo → contatado → qualificado → convertido, ou perdido. Muda por ação do operador **ou pelo bot de qualificação**, que marca `qualificado` ao fim do roteiro de botões. Nenhuma outra automação a move.
 _Avoid_: status (que é do plano), fase, estágio
 
 **Status de plano**:

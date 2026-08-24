@@ -13,6 +13,7 @@ export type LinhaConversaRpc = {
   last_message_time: string
   last_direction: string
   last_message_type: string | null
+  last_enviado_por: string | null
   nao_lidas: number
 }
 
@@ -27,6 +28,7 @@ export function mapearConversa(linha: LinhaConversaRpc): Conversation {
     last_message_time: linha.last_message_time,
     last_direction: linha.last_direction === 'inbound' ? 'inbound' : 'outbound',
     last_message_type: linha.last_message_type,
+    last_enviado_por: linha.last_enviado_por,
   }
 }
 

@@ -17,6 +17,12 @@ export type MensagemRecebida = {
   media_id: string | null
   media_mime_type: string | null
   reply_to_message_id: string | null
+  /**
+   * O id do botão tocado. `content` guarda o TÍTULO, que é o que a tela mostra;
+   * o id é o que o roteiro do bot usa para rotear. Título é copy e muda sem
+   * aviso — rotear por ele quebraria o bot na primeira revisão de texto.
+   */
+  button_id: string | null
 }
 
 export type StatusRecebido = { message_id: string; status: DeliveryStatus }
@@ -53,6 +59,16 @@ function conteudo(msg: Qualquer, tipo: string): string | null {
     default:
       return null
   }
+}
+
+/** Id do botão: mensagem interativa usa `id`, botão de template usa `payload`. */
+function idDoBotao(msg: Qualquer, tipo: string): string | null {
+  if (tipo === 'button') return str(obj(msg.button)?.payload)
+  if (tipo === 'interactive') {
+    const i = obj(msg.interactive)
+    return str(obj(i?.button_reply)?.id) ?? str(obj(i?.list_reply)?.id)
+  }
+  return null
 }
 
 /** Mídia por tipo. Áudio e sticker não têm caption, mas têm id e mime. */
@@ -109,6 +125,7 @@ export function parseWebhook(payload: unknown): WebhookParseado {
           media_id: mediaId,
           media_mime_type: mime,
           reply_to_message_id: str(obj(msg.context)?.id),
+          button_id: idDoBotao(msg, tipo),
         })
       }
 

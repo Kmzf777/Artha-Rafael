@@ -17,6 +17,7 @@ const linha = (over: Partial<LinhaConversaRpc> = {}): LinhaConversaRpc => ({
   last_message_time: '2026-07-09T16:32:33Z',
   last_direction: 'inbound',
   last_message_type: 'button',
+  last_enviado_por: null,
   nao_lidas: 0,
   ...over,
 })

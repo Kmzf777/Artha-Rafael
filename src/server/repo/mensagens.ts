@@ -2,6 +2,8 @@
 // A conversa é DERIVADA de `messages` pela mesma `conversationKey` que o
 // frontend usa — replicá-la em tabela criaria duas fontes de verdade. Spec §4.2.
 import 'server-only'
+import type { MensagemBot } from '@/lib/bot/estado'
+import { AUTOR_BOT } from '@/lib/bot/roteiro'
 import { conversationKey } from '@/lib/conversationKey'
 import type { Conversation, Message as MensagemFio } from '@/lib/conversationTypes'
 import { getWindowStatus } from '@/lib/janela24h'
@@ -23,6 +25,7 @@ type LinhaMensagem = MensagemFio & {
   lead_id: string | null
   enviado_por: string | null
   campanha_id: string | null
+  button_id: string | null
 }
 
 /**
@@ -56,6 +59,44 @@ export async function mensagensDoCard(key: string): Promise<MensagemUI[]> {
 }
 
 /**
+ * Histórico de uma conversa na forma mínima que `proximoPasso` consome.
+ *
+ * Não reusa `mensagensDoCard`: aquela devolve `MensagemUI`, que não declara
+ * `enviado_por`, `button_id` nem `campanha_id` — justamente os campos de que a
+ * decisão do bot depende. Selecionar as colunas certas aqui é mais honesto que
+ * confiar em campos que vêm no runtime mas não no tipo.
+ */
+export async function historicoParaBot(
+  phone: string,
+  phoneId: string | null
+): Promise<MensagemBot[]> {
+  let q = db()
+    .from('messages')
+    .select('direction,created_at,message_type,content,button_id,enviado_por,campanha_id')
+    .eq('phone', phone)
+    // `id` desempata, como em `listarLeads`. O timestamp da Meta tem resolução
+    // de SEGUNDO (`webhookParse` faz `ts * 1000`), então dois toques rápidos no
+    // mesmo botão gravam `created_at` idêntico — e o Postgres não promete ordem
+    // estável para empate sem chave secundária. Sem isto, a mesma conversa pode
+    // voltar em ordens diferentes entre duas execuções, e `proximoPasso` decide
+    // pela última mensagem: a decisão deixaria de ser função do histórico, que é
+    // a propriedade que dispensa a tabela de sessão e sustenta a idempotência
+    // das reentregas.
+    //
+    // O que isto compra é determinismo, não a ordem verdadeira: `id` é uuid, e o
+    // desempate sai arbitrário, não cronológico. Qual dos dois toques veio antes
+    // dentro do mesmo segundo é informação que o sistema não tem — mas decidir
+    // sempre igual sobre o mesmo histórico é o que importa aqui.
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true })
+  q = phoneId ? q.eq('phone_id', phoneId) : q.is('phone_id', null)
+
+  const { data, error } = await q
+  if (error) throw new Error(`historicoParaBot: ${error.message}`)
+  return (data ?? []) as MensagemBot[]
+}
+
+/**
  * Cards da lista + não-lidas, montados a partir das mensagens.
  *
  * LIMITAÇÃO CONHECIDA: o `.limit(5_000)` é um teto silencioso. Passando disso,
@@ -70,7 +111,7 @@ export async function listarCardsDeConversa(): Promise<{
 }> {
   const { data, error } = await db()
     .from('messages')
-    .select('phone,phone_id,bsuid,contact_name,content,created_at,direction,message_type')
+    .select('phone,phone_id,bsuid,contact_name,content,created_at,direction,message_type,enviado_por')
     .order('created_at', { ascending: false })
     .limit(5_000)
   if (error) throw new Error(`listarCardsDeConversa: ${error.message}`)
@@ -98,6 +139,7 @@ export async function listarCardsDeConversa(): Promise<{
         last_message_time: linha.created_at,
         last_direction: linha.direction,
         last_message_type: linha.message_type,
+        last_enviado_por: linha.enviado_por,
       })
       naoLidas[key] = 0
     }
@@ -263,9 +305,13 @@ export async function conversasEMensagens(): Promise<{
       if (card.janela24hExpiraEm === null) {
         card.janela24hExpiraEm = new Date(new Date(linha.created_at).getTime() + WINDOW_MS).toISOString()
       }
-    } else if (card.atribuidoA === null && linha.enviado_por) {
+    } else if (card.atribuidoA === null && linha.enviado_por && linha.enviado_por !== AUTOR_BOT) {
       // Não existe coluna de atribuição no schema. O sinal honesto disponível é
       // `enviado_por`: quem respondeu à mão por último é quem está atendendo.
+      //
+      // O bot é a exceção: ele não atende ninguém. Se contasse aqui, toda
+      // conversa que ele tocasse apareceria com operador atribuído e sairia da
+      // fila de quem deveria assumi-la.
       card.atribuidoA = linha.enviado_por
     }
   }

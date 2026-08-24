@@ -115,3 +115,110 @@ describe('parseWebhook — botão, mídia e ruído', () => {
     expect(parseWebhook(null)).toEqual({ mensagens: [], statuses: [] })
   })
 })
+
+describe('id do botão', () => {
+  function envelope(mensagem: Record<string, unknown>) {
+    return {
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                metadata: { phone_number_id: '111' },
+                contacts: [{ wa_id: '5534988861441', profile: { name: 'Rafael' } }],
+                messages: [mensagem],
+              },
+            },
+          ],
+        },
+      ],
+    }
+  }
+
+  it('mensagem interativa guarda o id no button_id e o título no content', () => {
+    const { mensagens } = parseWebhook(
+      envelope({
+        id: 'wamid.1',
+        from: '5534988861441',
+        timestamp: '1755000000',
+        type: 'interactive',
+        interactive: {
+          type: 'button_reply',
+          button_reply: { id: 'p1:artha', title: 'Minhas finanças' },
+        },
+      })
+    )
+    expect(mensagens[0].button_id).toBe('p1:artha')
+    expect(mensagens[0].content).toBe('Minhas finanças')
+  })
+
+  it('botão de template guarda o payload no button_id', () => {
+    const { mensagens } = parseWebhook(
+      envelope({
+        id: 'wamid.2',
+        from: '5534988861441',
+        timestamp: '1755000000',
+        type: 'button',
+        button: { payload: 'quero_voltar', text: 'Quero voltar' },
+      })
+    )
+    expect(mensagens[0].button_id).toBe('quero_voltar')
+    expect(mensagens[0].content).toBe('Quero voltar')
+  })
+
+  it('mensagem de texto não tem button_id', () => {
+    const { mensagens } = parseWebhook(
+      envelope({
+        id: 'wamid.3',
+        from: '5534988861441',
+        timestamp: '1755000000',
+        type: 'text',
+        text: { body: 'oi' },
+      })
+    )
+    expect(mensagens[0].button_id).toBeNull()
+  })
+
+  it('mensagem de lista guarda o id do list_reply no button_id', () => {
+    const { mensagens } = parseWebhook(
+      envelope({
+        id: 'wamid.4',
+        from: '5534988861441',
+        timestamp: '1755000000',
+        type: 'interactive',
+        interactive: {
+          type: 'list_reply',
+          list_reply: { id: 'menu:1', title: 'Opção 1' },
+        },
+      })
+    )
+    expect(mensagens[0].button_id).toBe('menu:1')
+    expect(mensagens[0].content).toBe('Opção 1')
+  })
+
+  it('botão de template sem payload não estoura, button_id fica null', () => {
+    const { mensagens } = parseWebhook(
+      envelope({
+        id: 'wamid.5',
+        from: '5534988861441',
+        timestamp: '1755000000',
+        type: 'button',
+        button: { text: 'sem payload' },
+      })
+    )
+    expect(mensagens[0].button_id).toBeNull()
+  })
+
+  it('mensagem interativa sem button_reply nem list_reply não estoura, button_id fica null', () => {
+    const { mensagens } = parseWebhook(
+      envelope({
+        id: 'wamid.6',
+        from: '5534988861441',
+        timestamp: '1755000000',
+        type: 'interactive',
+        interactive: { type: 'button_reply' },
+      })
+    )
+    expect(mensagens[0].button_id).toBeNull()
+  })
+})

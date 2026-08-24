@@ -34,6 +34,14 @@ export type Conversation = {
   last_message_time: string
   last_direction: 'inbound' | 'outbound'
   last_message_type: string | null
+  /**
+   * Autoria da última mensagem: nome do humano, `'bot'`, ou `null` quando
+   * ninguém está identificado (inbound, ou envio sem operador atribuído).
+   * Sem isto, a lista "Fila de atendimento" não distingue o fecho do bot de
+   * uma resposta humana, e diverge do tile que conta pela mesma régua
+   * (`esperandoResposta`, em `src/lib/regras.ts`).
+   */
+  last_enviado_por: string | null
 }
 
 /**

@@ -10,6 +10,7 @@
 // Por isso serve tanto ao servidor (que passa `new Date()` e as linhas do
 // Postgres) quanto à demo (que passa a âncora fixa e o dataset fictício).
 
+import { AUTOR_BOT } from '@/lib/bot/roteiro'
 import type {
   Agendamento,
   AgendamentoStatus,
@@ -49,6 +50,25 @@ export function ehAtivo(lead: Lead): boolean {
 /** O universo da reativação. É este número que o Dashboard estampa. */
 export function ehInativo(lead: Lead): boolean {
   return !ehAtivo(lead)
+}
+
+/**
+ * A conversa está esperando resposta humana? Última mensagem do lead, ou do
+ * bot — porque o bot não atende ninguém, ele entrega. O fecho dele é a
+ * promessa de que alguém vai responder, então tirar a conversa da fila ali
+ * seria esconder o lead de quem prometeu atender.
+ *
+ * Régua única: o tile do Dashboard (via `filaAtendimento`), a lista "Fila de
+ * atendimento" do Dashboard e o tile de Relatórios não podem divergir sobre
+ * quem está na fila. Parâmetros soltos, não um dos dois tipos de mensagem
+ * (`Message` do servidor, `Conversation` de fio) — os dois chamam com o que
+ * têm à mão.
+ */
+export function esperandoResposta(
+  direcao: 'inbound' | 'outbound',
+  enviadoPor: string | null | undefined
+): boolean {
+  return direcao === 'inbound' || enviadoPor === AUTOR_BOT
 }
 
 export type FiltroRecorte = {
@@ -101,7 +121,10 @@ export type Metrics = {
   conversas: {
     total: number
     naoLidas: number
-    /** Cards cuja última mensagem é do lead — alguém está esperando resposta. */
+    /**
+     * Cards cuja última mensagem é do lead OU do bot — alguém está esperando
+     * resposta. O bot entrega, não atende: seu fecho não tira ninguém da fila.
+     */
     filaAtendimento: number
     janelaAberta: number
     atribuidas: number
@@ -243,7 +266,10 @@ export function getMetrics(dados: DadosMetrics, agora: Date): Metrics {
     conversas: {
       total: conversas.length,
       naoLidas: conversas.reduce((n, c) => n + c.naoLidas, 0),
-      filaAtendimento: conversas.filter((c) => ultimaPorConversa.get(c.id)?.direcao === 'inbound').length,
+      filaAtendimento: conversas.filter((c) => {
+        const ultima = ultimaPorConversa.get(c.id)
+        return ultima !== undefined && esperandoResposta(ultima.direcao, ultima.enviadoPor)
+      }).length,
       janelaAberta: conversas.filter(
         (c) => c.janela24hExpiraEm !== null && new Date(c.janela24hExpiraEm) > agora
       ).length,
