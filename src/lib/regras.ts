@@ -10,6 +10,7 @@
 // Por isso serve tanto ao servidor (que passa `new Date()` e as linhas do
 // Postgres) quanto à demo (que passa a âncora fixa e o dataset fictício).
 
+import { AUTOR_BOT } from '@/lib/bot/roteiro'
 import type {
   Agendamento,
   AgendamentoStatus,
@@ -101,7 +102,10 @@ export type Metrics = {
   conversas: {
     total: number
     naoLidas: number
-    /** Cards cuja última mensagem é do lead — alguém está esperando resposta. */
+    /**
+     * Cards cuja última mensagem é do lead OU do bot — alguém está esperando
+     * resposta. O bot entrega, não atende: seu fecho não tira ninguém da fila.
+     */
     filaAtendimento: number
     janelaAberta: number
     atribuidas: number
@@ -243,7 +247,13 @@ export function getMetrics(dados: DadosMetrics, agora: Date): Metrics {
     conversas: {
       total: conversas.length,
       naoLidas: conversas.reduce((n, c) => n + c.naoLidas, 0),
-      filaAtendimento: conversas.filter((c) => ultimaPorConversa.get(c.id)?.direcao === 'inbound').length,
+      // O bot não atende ninguém, só entrega o fecho — mesma exceção que
+      // `atribuidoA` já faz em src/server/repo/mensagens.ts. Uma resposta do
+      // bot não pode tirar o lead da fila de quem vai responder de verdade.
+      filaAtendimento: conversas.filter((c) => {
+        const ultima = ultimaPorConversa.get(c.id)
+        return ultima?.direcao === 'inbound' || ultima?.enviadoPor === AUTOR_BOT
+      }).length,
       janelaAberta: conversas.filter(
         (c) => c.janela24hExpiraEm !== null && new Date(c.janela24hExpiraEm) > agora
       ).length,
