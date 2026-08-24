@@ -23,6 +23,7 @@ type LinhaMensagem = MensagemFio & {
   lead_id: string | null
   enviado_por: string | null
   campanha_id: string | null
+  button_id: string | null
 }
 
 /**

@@ -93,6 +93,7 @@ async function processar(payload: unknown): Promise<void> {
       media_mime_type: m.media_mime_type,
       media_storage_path: null,
       reply_to_message_id: m.reply_to_message_id,
+      button_id: m.button_id,
     })
     if (m.media_id) await arquivarMidia(m.media_id, m.media_mime_type)
     if (lead) {
