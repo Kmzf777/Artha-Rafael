@@ -24,7 +24,7 @@
 | `src/lib/bot/roteiro.ts` *(novo)* | O roteiro como dado: perguntas, ids, títulos, ramificação, mapas de id → segmento/tag. Puro, sem lógica de decisão |
 | `src/lib/bot/roteiro.test.ts` *(novo)* | Invariantes da Cloud API: ≤3 botões, título ≤20 caracteres, ids únicos |
 | `src/lib/bot/estado.ts` *(novo)* | `proximoPasso(mensagens)` — a única decisão do bot. Puro |
-| `src/lib/bot/estado.test.ts` *(novo)* | Os 12 casos de comportamento |
+| `src/lib/bot/estado.test.ts` *(novo)* | Os 16 casos de comportamento |
 | `src/server/meta/client.ts` | `enviarBotoes()` |
 | `src/server/repo/mensagens.ts` | `historicoParaBot()`; `button_id` no tipo da linha; `atribuidoA` ignora `'bot'` |
 | `src/server/repo/leads.ts` | `qualificarLead()` |
