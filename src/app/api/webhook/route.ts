@@ -5,6 +5,7 @@
 import { after, NextResponse } from 'next/server'
 import { parseWebhook } from '@/lib/webhookParse'
 import { executarBot } from '@/server/bot/executar'
+import { tentarReset } from '@/server/bot/reset'
 import { env } from '@/server/env'
 import { assinaturaConfere } from '@/server/meta/assinatura'
 import { acharOuCriarLeadPorTelefone } from '@/server/repo/leads'
@@ -106,12 +107,18 @@ async function processar(payload: unknown): Promise<void> {
     // pode impedir a marcação do evento como processado nem derrubar o
     // tratamento das outras mensagens do mesmo payload.
     try {
-      await executarBot({
-        messageId: m.message_id,
-        phone: m.phone,
-        phoneId: m.phone_id,
-        leadId: lead?.id ?? null,
-      })
+      // `!reset` vem antes: ele apaga o histórico que o bot leria, então rodar
+      // os dois na mesma mensagem faria o bot decidir sobre uma conversa que
+      // deixou de existir no meio do caminho.
+      const resetou = await tentarReset({ phone: m.phone, phoneId: m.phone_id }, m.content)
+      if (!resetou) {
+        await executarBot({
+          messageId: m.message_id,
+          phone: m.phone,
+          phoneId: m.phone_id,
+          leadId: lead?.id ?? null,
+        })
+      }
     } catch (e) {
       console.error('[bot] falha ao executar', m.message_id, e)
     }

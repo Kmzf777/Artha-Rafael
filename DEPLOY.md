@@ -63,6 +63,37 @@ Os valores estão no `.env.local`, que não vai para o git.
 | `PAINEL_USUARIO` / `PAINEL_SENHA` | **obrigatórias em produção** — ver §5 |
 | `DISPARO_LIMITE_DIARIO` | `250` |
 | `GRAPH_API_VERSION` | `v21.0` |
+| `BOT_QUALIFICACAO` | `on` liga o bot de botões; qualquer outro valor desliga |
+| `BOT_RESET_TELEFONES` | telefones que podem mandar `!reset`; vazio desliga |
+
+**`.env.local` não vale aqui.** Ele é local e está no `.gitignore` — nunca chega
+à Vercel. Editar aquele arquivo não muda nada em produção; a variável tem de ser
+criada no painel da Vercel.
+
+**Variável nova exige redeploy.** A Vercel não injeta variável em deploy que já
+está no ar: depois de criar ou alterar, use **Deployments → ⋯ → Redeploy**. Um
+bot que continua mudo depois de você ligar `BOT_QUALIFICACAO` quase sempre é
+isto.
+
+### `BOT_QUALIFICACAO` — o padrão é desligado
+
+De propósito: um deploy sem a variável não começa a mandar mensagem automática
+para a base do cliente. Ligar é uma decisão, não um efeito colateral de subir
+código.
+
+### `BOT_RESET_TELEFONES` — só telefone de teste
+
+`!reset` mandado no WhatsApp apaga o lead e **todo o histórico** daquele número,
+sem confirmação, para o roteiro poder ser testado de novo sem trocar de chip. É
+comando destrutivo disparado por quem manda mensagem, e o número da Artha vai
+ser público.
+
+Por isso a lista vazia desliga o comando, e é o padrão. Ponha só os telefones de
+quem testa, em qualquer forma (`5534988861441`, `34988861441` e
+`+55 (34) 98886-1441` são a mesma pessoa). Comando de número fora da lista é
+ignorado em silêncio.
+
+Antes de entregar o número ao cliente, **esvazie esta variável.**
 
 ## 3. Região: `gru1`
 
