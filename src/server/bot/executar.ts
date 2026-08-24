@@ -55,12 +55,12 @@ export async function executarBot(gatilho: Gatilho): Promise<void> {
     return
   }
 
-  // encerrar
-  if (passo.comFecho) {
-    const resposta = await enviarTexto(gatilho.phone, FECHO)
-    await gravarSaida(gatilho, resposta.messages[0]?.id ?? null, FECHO, 'text')
-  }
-
+  // encerrar. A qualificação vem ANTES do fecho de propósito: o fecho é
+  // cortesia, a qualificação é o produto inteiro do bot. A trava de `bot_acoes`
+  // já foi queimada acima e não há reprocessamento — se um erro da Meta deixar
+  // só um dos dois acontecer, tem que ser a qualificação que sobrevive. Não
+  // contradiz o "não retenta" da §3.7: aquilo é sobre a mensagem, não sobre a
+  // gravação.
   if (gatilho.leadId) {
     // Os dois tipos são ANOTADOS de propósito. O projeto não liga
     // `noUncheckedIndexedAccess`, então indexar um `Record` devolve o tipo do
@@ -73,6 +73,11 @@ export async function executarBot(gatilho: Gatilho): Promise<void> {
         ? TAG_POR_RESPOSTA[passo.idP1]
         : undefined
     if (segmento || tag) await qualificarLead(gatilho.leadId, { segmento, tag })
+  }
+
+  if (passo.comFecho) {
+    const resposta = await enviarTexto(gatilho.phone, FECHO)
+    await gravarSaida(gatilho, resposta.messages[0]?.id ?? null, FECHO, 'text')
   }
 }
 
