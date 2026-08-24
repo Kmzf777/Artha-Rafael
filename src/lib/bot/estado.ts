@@ -1,0 +1,107 @@
+// A ÚNICA decisão do bot, como função pura do histórico da conversa.
+// Spec 2026-08-24 §3.5.
+//
+// Não há tabela de sessão. O passo do roteiro é derivado das mensagens, pelo
+// mesmo princípio que `janela24h`, `timeline` e `getMetrics` já seguem. Isso dá
+// de graça a idempotência que o webhook exige: a Meta reentrega quando a
+// resposta demora, e reprocessar o mesmo histórico devolve a mesma decisão.
+//
+// Sem relógio: nada aqui depende de tempo. A janela de 24h é do executor.
+import {
+  AUTOR_BOT,
+  P1,
+  ehIdConhecido,
+  ehIdP1,
+  ehIdP2,
+  perguntaP2,
+  type Pergunta,
+} from './roteiro'
+
+/**
+ * A forma mínima de mensagem que a decisão precisa — o mesmo padrão de
+ * `MensagemJanela` em `janela24h.ts`. Declarar o mínimo mantém o módulo puro e
+ * o teste construível à mão.
+ */
+export type MensagemBot = {
+  direction: 'inbound' | 'outbound'
+  created_at: string
+  message_type: string
+  content: string | null
+  button_id: string | null
+  enviado_por: string | null
+}
+
+export type Passo =
+  | { acao: 'perguntar'; pergunta: Pergunta }
+  | { acao: 'repetir'; pergunta: Pergunta }
+  | { acao: 'encerrar'; idP1: string | null; idP2: string | null; comFecho: boolean }
+  | { acao: 'calar' }
+
+const CALAR: Passo = { acao: 'calar' }
+
+/** Quantas vezes o bot pode insistir antes de entregar ao humano. */
+const TETO_DE_INSISTENCIA = 1
+
+function ehDoBot(m: MensagemBot): boolean {
+  return m.direction === 'outbound' && m.enviado_por === AUTOR_BOT
+}
+
+function ehDeHumano(m: MensagemBot): boolean {
+  return m.direction === 'outbound' && m.enviado_por !== AUTOR_BOT
+}
+
+export function proximoPasso(mensagens: MensagemBot[]): Passo {
+  const ms = [...mensagens].sort((a, b) => a.created_at.localeCompare(b.created_at))
+  if (ms.length === 0) return CALAR
+
+  // Um operador que falou uma vez desliga o bot naquela conversa para sempre.
+  // Vem antes de tudo: é a regra que o cliente comprou quando desligou o robô
+  // dele por ele responder onde não devia.
+  if (ms.some(ehDeHumano)) return CALAR
+
+  // O bot só reage à última mensagem, e só se ela for do lead. Se a última é
+  // dele mesmo, não há nada a responder — é reentrega da Meta.
+  const ultima = ms[ms.length - 1]
+  if (ultima.direction !== 'inbound') return CALAR
+
+  // O bot ainda não falou: é aqui que o gatilho de primeiro contato mora. Mais
+  // de um inbound significa que essa pessoa já escreveu antes, e quem já
+  // escreveu não vê o bot. Depois que o bot fala, o roteiro continua — a
+  // resposta ao botão também chega como inbound.
+  if (!ms.some(ehDoBot)) {
+    const entradas = ms.filter((m) => m.direction === 'inbound').length
+    return entradas > 1 ? CALAR : { acao: 'perguntar', pergunta: P1 }
+  }
+
+  // A última resposta VÁLIDA do lead define onde o roteiro está.
+  const idP1 = ms.reduce<string | null>((acc, m) => (ehIdP1(m.button_id) ? m.button_id : acc), null)
+
+  const id = ultima.button_id
+  if (ehIdP2(id)) return { acao: 'encerrar', idP1, idP2: id, comFecho: true }
+  if (id === 'p1:outro') return { acao: 'encerrar', idP1: id, idP2: null, comFecho: true }
+  if (ehIdP1(id)) {
+    const p2 = perguntaP2(id!)
+    if (p2) return { acao: 'perguntar', pergunta: p2 }
+    return { acao: 'encerrar', idP1: id, idP2: null, comFecho: true }
+  }
+  // Botão que o roteiro não conhece: campanha antiga ou roteiro trocado no meio.
+  // `idP1` vai junto: se a p1 já tinha sido respondida, o segmento é informação
+  // boa e jogá-la fora não ajuda ninguém.
+  if (id !== null) return { acao: 'encerrar', idP1, idP2: null, comFecho: false }
+
+  // Texto livre. Quantas vezes o bot já falou desde a última resposta válida?
+  // Contar mensagens do bot no histórico inteiro daria a resposta errada quando
+  // o lead já avançou o roteiro antes de começar a escrever.
+  const ultimaValida = ms.reduce<number>(
+    (acc, m, i) => (m.direction === 'inbound' && ehIdConhecido(m.button_id) ? i : acc),
+    -1
+  )
+  const falasDoBot = ms.filter((m, i) => i > ultimaValida && ehDoBot(m)).length
+
+  if (falasDoBot > TETO_DE_INSISTENCIA) {
+    return { acao: 'encerrar', idP1, idP2: null, comFecho: false }
+  }
+
+  const pendente = idP1 ? (perguntaP2(idP1) ?? P1) : P1
+  return { acao: 'repetir', pergunta: pendente }
+}
