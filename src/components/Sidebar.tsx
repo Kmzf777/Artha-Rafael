@@ -113,9 +113,9 @@ export default function Sidebar({ activeTab, onTabChange, unreadCounts }: Sideba
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-hairline bg-canvas">
-      {/* Logotipo. A marca cobre "Artha"; o sufixo "System" segue em texto,
-          no mesmo tratamento mudo de antes — sentence-case, sem letter-spacing. */}
-      <div className="flex items-center gap-2 px-5 pt-8 pb-6">
+      {/* Logotipo, sozinho: a marca é a identificação da tela. O nome do
+          produto continua no `title` do documento. */}
+      <div className="px-5 pt-8 pb-6">
         <Image
           src="/logo-artha.png"
           alt="Artha"
@@ -124,7 +124,6 @@ export default function Sidebar({ activeTab, onTabChange, unreadCounts }: Sideba
           priority
           className="logo-on-canvas h-8 w-auto"
         />
-        <span className="t-display-md text-body">System</span>
       </div>
 
       <nav className="flex-1 space-y-1 px-3" aria-label="Seções do painel">

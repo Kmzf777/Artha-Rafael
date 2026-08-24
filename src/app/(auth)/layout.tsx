@@ -23,10 +23,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex min-h-screen flex-col bg-canvas lg:grid lg:grid-cols-2">
       <section className="flex flex-col gap-8 bg-ink p-8 text-on-ink lg:justify-between">
-        {/* Logotipo no mesmo tratamento da Sidebar, com "System" em texto.
-            Aqui em polaridade invertida, porque a superfície é a invertida:
+        {/* Logotipo no mesmo tratamento da Sidebar, sozinho. Aqui em
+            polaridade invertida, porque a superfície é a invertida:
             `logo-on-ink` faz a marca virar silhueta clara sobre o painel. */}
-        <p className="reveal-rise flex items-center gap-2 t-display-md">
+        <div className="reveal-rise">
           <Image
             src="/logo-artha.png"
             alt="Artha"
@@ -35,8 +35,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             priority
             className="logo-on-ink h-10 w-auto"
           />
-          <span className="text-mute">System</span>
-        </p>
+        </div>
 
         <div className="reveal-rise max-w-lg" style={{ animationDelay: '60ms' }}>
           <p className="t-display-xl">A base inativa volta a conversar.</p>
