@@ -92,6 +92,11 @@ export function useMessageSender({ conv, acrescentar }: Args) {
           last_message_time: criadoEm,
           last_direction: 'outbound',
           last_message_type: tipo,
+          // A rota de envio não manda `enviadoPor` (sem contas por pessoa
+          // ainda — DEPLOY.md §5): a mensagem grava autoria nula no servidor.
+          // Sem isto aqui, um `last_enviado_por: 'bot'` herdado do card
+          // anterior sobreviveria à resposta humana que acabou de sair.
+          last_enviado_por: null,
         }
         return {
           conversas: [atualizada, ...atual.conversas.filter((c) => c.key !== conv.key)],

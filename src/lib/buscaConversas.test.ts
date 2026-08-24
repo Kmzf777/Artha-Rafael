@@ -45,6 +45,7 @@ describe('mapearResultado', () => {
     last_message_time: '2026-07-09T16:32:33Z',
     last_direction: 'inbound',
     last_message_type: 'button',
+    last_enviado_por: null,
     match_tipo: 'telefone',
     match_trecho: '553791235196',
   }

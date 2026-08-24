@@ -13,6 +13,7 @@ import { useConversations } from '@/hooks/useConversations'
 import { useMetrics } from '@/hooks/useMetrics'
 import type { Conversation } from '@/lib/conversationTypes'
 import { getInitials } from '@/lib/format'
+import { esperandoResposta } from '@/lib/regras'
 import { tabHref, type ActiveTab } from '@/lib/tabs'
 
 // Dashboard — spec §5. Quatro tiles `card-soft-tinted`, UMA banda
@@ -166,10 +167,11 @@ export default function Dashboard() {
   // por uma frase, em vez de estampar "0" na maior tipografia do sistema.
   const semLeads = metrics.totalLeads === 0
 
-  // Fila = quem falou por último foi o lead. Mesma régua de
-  // `metrics.conversas.filaAtendimento`. Quem espera há mais tempo vem primeiro.
+  // Mesma régua de `metrics.conversas.filaAtendimento` — `esperandoResposta`
+  // de `@/lib/regras`, não um filtro local: as duas listagens não podem
+  // divergir sobre quem está esperando. Quem espera há mais tempo vem primeiro.
   const fila = conversas
-    .filter((c) => c.last_direction === 'inbound')
+    .filter((c) => esperandoResposta(c.last_direction, c.last_enviado_por))
     .sort(
       (a, b) =>
         new Date(a.last_message_time).getTime() - new Date(b.last_message_time).getTime()
@@ -268,7 +270,7 @@ export default function Dashboard() {
         <div className="grid gap-8 lg:grid-cols-2">
           <Lista
             titulo="Fila de atendimento"
-            descricao="Última mensagem foi do lead — quem espera há mais tempo vem primeiro."
+            descricao="Última mensagem foi do lead ou do bot — quem espera há mais tempo vem primeiro."
             acao={() => irParaAba('conversations')}
             atraso={300}
           >

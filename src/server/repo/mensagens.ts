@@ -111,7 +111,7 @@ export async function listarCardsDeConversa(): Promise<{
 }> {
   const { data, error } = await db()
     .from('messages')
-    .select('phone,phone_id,bsuid,contact_name,content,created_at,direction,message_type')
+    .select('phone,phone_id,bsuid,contact_name,content,created_at,direction,message_type,enviado_por')
     .order('created_at', { ascending: false })
     .limit(5_000)
   if (error) throw new Error(`listarCardsDeConversa: ${error.message}`)
@@ -139,6 +139,7 @@ export async function listarCardsDeConversa(): Promise<{
         last_message_time: linha.created_at,
         last_direction: linha.direction,
         last_message_type: linha.message_type,
+        last_enviado_por: linha.enviado_por,
       })
       naoLidas[key] = 0
     }

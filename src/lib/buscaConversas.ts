@@ -22,6 +22,7 @@ type LinhaRpc = {
   last_message_time: string
   last_direction: string
   last_message_type: string | null
+  last_enviado_por: string | null
   match_tipo: string
   match_trecho: string | null
 }
@@ -37,6 +38,7 @@ export function mapearResultado(linha: LinhaRpc): ResultadoBusca {
     last_message_time: linha.last_message_time,
     last_direction: linha.last_direction === 'inbound' ? 'inbound' : 'outbound',
     last_message_type: linha.last_message_type,
+    last_enviado_por: linha.last_enviado_por,
     match_tipo: linha.match_tipo as MatchTipo,
     match_trecho: linha.match_trecho,
   }

@@ -175,6 +175,7 @@ function paraCard(conversa: Conversa, lead: Lead, ultima: Message | undefined): 
     last_message_time: conversa.ultimaMensagemEm,
     last_direction: ultima?.direcao ?? 'outbound',
     last_message_type: ultima?.tipo ?? null,
+    last_enviado_por: ultima?.enviadoPor ?? null,
   }
 }
 

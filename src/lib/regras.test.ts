@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { AUTOR_BOT, FECHO } from '@/lib/bot/roteiro'
 import type { Conversa, Lead, Message } from '@/mock/types'
-import { getMetrics, podeDisparar, type DadosMetrics } from './regras'
+import { esperandoResposta, getMetrics, podeDisparar, type DadosMetrics } from './regras'
 
 function lead(extra: Partial<Lead> = {}): Lead {
   return {
@@ -42,6 +42,27 @@ describe('podeDisparar — a trava que impede spam a desconhecidos', () => {
     // A comparação é estrita: só `true` bloqueia. Um `'false'` vindo de JSON
     // mal tipado não pode virar bloqueio silencioso da campanha real.
     expect(podeDisparar(lead({ ficticio: undefined }))).toBe(true)
+  })
+})
+
+describe('esperandoResposta — a régua única de fila, para Message e Conversation', () => {
+  it('inbound conta, seja qual for a autoria', () => {
+    expect(esperandoResposta('inbound', undefined)).toBe(true)
+    expect(esperandoResposta('inbound', null)).toBe(true)
+    expect(esperandoResposta('inbound', 'alguem')).toBe(true)
+  })
+
+  it('outbound do bot conta — ele entrega, não atende', () => {
+    expect(esperandoResposta('outbound', AUTOR_BOT)).toBe(true)
+  })
+
+  it('outbound de humano nomeado não conta', () => {
+    expect(esperandoResposta('outbound', 'operacao@artha.ia.br')).toBe(false)
+  })
+
+  it('outbound sem autoria não conta — é a forma que a resposta manual do operador tem hoje', () => {
+    expect(esperandoResposta('outbound', null)).toBe(false)
+    expect(esperandoResposta('outbound', undefined)).toBe(false)
   })
 })
 

@@ -52,6 +52,25 @@ export function ehInativo(lead: Lead): boolean {
   return !ehAtivo(lead)
 }
 
+/**
+ * A conversa está esperando resposta humana? Última mensagem do lead, ou do
+ * bot — porque o bot não atende ninguém, ele entrega. O fecho dele é a
+ * promessa de que alguém vai responder, então tirar a conversa da fila ali
+ * seria esconder o lead de quem prometeu atender.
+ *
+ * Régua única: o tile do Dashboard (via `filaAtendimento`), a lista "Fila de
+ * atendimento" do Dashboard e o tile de Relatórios não podem divergir sobre
+ * quem está na fila. Parâmetros soltos, não um dos dois tipos de mensagem
+ * (`Message` do servidor, `Conversation` de fio) — os dois chamam com o que
+ * têm à mão.
+ */
+export function esperandoResposta(
+  direcao: 'inbound' | 'outbound',
+  enviadoPor: string | null | undefined
+): boolean {
+  return direcao === 'inbound' || enviadoPor === AUTOR_BOT
+}
+
 export type FiltroRecorte = {
   /** Piso de dias sem acesso. Padrão: 30. */
   diasSemAcesso?: FaixaSemAcesso
@@ -247,12 +266,9 @@ export function getMetrics(dados: DadosMetrics, agora: Date): Metrics {
     conversas: {
       total: conversas.length,
       naoLidas: conversas.reduce((n, c) => n + c.naoLidas, 0),
-      // O bot não atende ninguém, só entrega o fecho — mesma exceção que
-      // `atribuidoA` já faz em src/server/repo/mensagens.ts. Uma resposta do
-      // bot não pode tirar o lead da fila de quem vai responder de verdade.
       filaAtendimento: conversas.filter((c) => {
         const ultima = ultimaPorConversa.get(c.id)
-        return ultima?.direcao === 'inbound' || ultima?.enviadoPor === AUTOR_BOT
+        return ultima !== undefined && esperandoResposta(ultima.direcao, ultima.enviadoPor)
       }).length,
       janelaAberta: conversas.filter(
         (c) => c.janela24hExpiraEm !== null && new Date(c.janela24hExpiraEm) > agora
