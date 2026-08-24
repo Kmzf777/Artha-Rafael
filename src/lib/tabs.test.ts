@@ -2,13 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { parseTab, isActiveTab, tabHref, DEFAULT_TAB, ACTIVE_TABS } from './tabs'
 
 describe('ACTIVE_TABS', () => {
-  it('registra exatamente as sete superfícies do painel', () => {
+  it('registra exatamente as cinco superfícies do painel', () => {
     expect(ACTIVE_TABS).toEqual([
       'dashboard',
       'conversations',
       'leads',
-      'disparos',
-      'templates',
       'reports',
       'account',
     ])
@@ -35,14 +33,17 @@ describe('parseTab', () => {
     expect(parseTab('reativacao')).toBe(DEFAULT_TAB)
     expect(parseTab('agendamentos')).toBe(DEFAULT_TAB)
     expect(parseTab('executivo')).toBe(DEFAULT_TAB)
+    expect(parseTab('disparos')).toBe(DEFAULT_TAB)
+    expect(parseTab('templates')).toBe(DEFAULT_TAB)
   })
 })
 
 describe('isActiveTab', () => {
   it('true para válidos, false para o resto', () => {
     expect(isActiveTab('leads')).toBe(true)
-    expect(isActiveTab('templates')).toBe(true)
+    expect(isActiveTab('reports')).toBe(true)
     expect(isActiveTab('reativacao')).toBe(false)
+    expect(isActiveTab('templates')).toBe(false)
     expect(isActiveTab('xyz')).toBe(false)
     expect(isActiveTab(null)).toBe(false)
   })
@@ -52,7 +53,7 @@ describe('tabHref', () => {
   it('dashboard usa a raiz limpa e as demais usam ?tab=', () => {
     expect(tabHref('dashboard')).toBe('/')
     expect(tabHref('conversations')).toBe('/?tab=conversations')
-    expect(tabHref('disparos')).toBe('/?tab=disparos')
+    expect(tabHref('leads')).toBe('/?tab=leads')
     expect(tabHref('reports')).toBe('/?tab=reports')
     expect(tabHref('account')).toBe('/?tab=account')
   })

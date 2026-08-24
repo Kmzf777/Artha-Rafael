@@ -2,7 +2,7 @@
 
 import { format, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ArrowRight, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 
 import Badge from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -236,7 +236,7 @@ export default function Dashboard() {
             `--accent-text` daria 1,61:1. O `--accent-on-ink` é o espelho dele —
             10,1:1 no claro (ouro sobre preto), 5,41:1 no escuro (sobre branco). */}
         <Card tone="dark" className="reveal-rise py-8" style={{ animationDelay: '240ms' }}>
-          <CardContent className="flex flex-col gap-6 px-8 lg:flex-row lg:items-center lg:justify-between">
+          <CardContent className="px-8">
             <div className="min-w-0">
               <p className="t-caption text-on-ink opacity-70">Oportunidade de reativação</p>
               <p className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -250,17 +250,6 @@ export default function Dashboard() {
                 assinaturas canceladas, trials expirados e inadimplentes que já conhecem o produto.
               </p>
             </div>
-            {/* CTA nunca é ouro. Na banda invertida ele inverte junto: pílula
-                branca sobre o preto do tema claro, preta sobre o branco do
-                escuro. É exatamente o que `variant="secondary"` já faz. */}
-            <Button
-              variant="secondary"
-              onClick={() => irParaAba('disparos')}
-              className="shrink-0"
-            >
-              Iniciar campanha
-              <ArrowRight aria-hidden />
-            </Button>
           </CardContent>
         </Card>
 

@@ -8,8 +8,6 @@ import {
   LayoutDashboard,
   MessageSquare,
   Users,
-  Send,
-  LayoutTemplate,
   BarChart3,
   Settings,
   Sun,
@@ -32,14 +30,12 @@ import { ACTIVE_TABS, type ActiveTab } from '@/lib/tabs'
 
 type NavItem = { id: ActiveTab; label: string; icon: React.ElementType }
 
-// A ordem espelha ACTIVE_TABS — as sete superfícies, sem gate: não há
+// A ordem espelha ACTIVE_TABS — as cinco superfícies, sem gate: não há
 // autenticação nesta fase.
 const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'conversations', label: 'Conversas', icon: MessageSquare },
   { id: 'leads', label: 'Leads', icon: Users },
-  { id: 'disparos', label: 'Disparos', icon: Send },
-  { id: 'templates', label: 'Templates', icon: LayoutTemplate },
   { id: 'reports', label: 'Relatórios', icon: BarChart3 },
   { id: 'account', label: 'Configurações', icon: Settings },
 ]

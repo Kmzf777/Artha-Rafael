@@ -6,8 +6,6 @@ import Sidebar from '@/components/Sidebar'
 import Dashboard from '@/components/Dashboard'
 import Conversations from '@/components/Conversations'
 import Leads from '@/components/Leads'
-import Disparos from '@/components/Disparos'
-import Templates from '@/components/Templates'
 import Reports from '@/components/Reports'
 import AccountInfo from '@/components/AccountInfo'
 import { parseTab, tabHref, type ActiveTab } from '@/lib/tabs'
@@ -33,8 +31,6 @@ function HomeContent() {
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'conversations' && <Conversations onUpdateUnread={setUnreadCounts} />}
         {activeTab === 'leads' && <Leads />}
-        {activeTab === 'disparos' && <Disparos />}
-        {activeTab === 'templates' && <Templates />}
         {activeTab === 'reports' && <Reports />}
         {activeTab === 'account' && <AccountInfo />}
       </main>
