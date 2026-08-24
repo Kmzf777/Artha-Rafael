@@ -1,17 +1,14 @@
 'use client'
 
-// Relatórios — desempenho das campanhas de reativação (spec §5).
+// Relatórios — atendimento e qualificação.
 //
-// REGRA DURA DESTE ARQUIVO: nenhum número é digitado. Tudo sai de `useMetrics()`
-// e `useCampanhas()`. Os totais do rodapé da tabela vêm de `metrics.campanhas`
-// (a mesma agregação derivada que alimenta o funil), e não de uma soma refeita
-// aqui — assim o funil e a tabela não têm como divergir um do outro.
+// REGRA DURA DESTE ARQUIVO: nenhum número é digitado. Tudo sai de `useMetrics()`,
+// a mesma agregação derivada que alimenta o Dashboard — assim as duas telas não
+// têm como divergir uma da outra.
 //
-// GRÁFICO, spec §5: SVG inline, no máximo 3 séries, série primária em `--accent`,
-// demais em rampa de opacidade de `--ink`, rótulo direto na série. Os dois
-// gráficos desta tela têm UMA série cada (o funil e a taxa de resposta), então o
-// ouro é a série e a trilha atrás dela é cromo recessivo — não é uma segunda
-// série, é o mesmo papel de uma linha de grade.
+// GRÁFICO: SVG inline, no máximo 3 séries, série primária em `--accent`, rótulo
+// direto na série. O funil desta tela tem UMA série, e a trilha atrás dela é
+// cromo recessivo — não é uma segunda série, é o papel de uma linha de grade.
 
 import {
   Card,
@@ -20,7 +17,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Tag } from '@/components/ui/chip'
 import {
   Table,
   TableBody,
@@ -30,7 +26,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useCampanhas } from '@/hooks/useCampanhas'
 import { useMetrics } from '@/hooks/useMetrics'
 import { ROTULO_SEGMENTO } from '@/lib/segmentos'
 import type { Segmento } from '@/mock/types'
@@ -43,12 +38,6 @@ const porcentoFixo = new Intl.NumberFormat('pt-BR', {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 })
-
-/** Público-alvo da campanha. Rótulo de produto vem de `@/lib/segmentos`. */
-const ALVO: Record<Segmento | 'todos', string> = {
-  ...ROTULO_SEGMENTO,
-  todos: 'Toda a base',
-}
 
 // ── Geometria ───────────────────────────────────────────────────────────────
 // Unidades de usuário do SVG, não pixels de CSS: o `viewBox` escala junto com o
@@ -72,10 +61,10 @@ function barra(x: number, y: number, w: number, h: number): string {
 type Etapa = { rotulo: string; valor: number; nota: string }
 
 /**
- * Funil das campanhas. Uma série (o volume que sobra em cada etapa) em ouro,
- * sobre a trilha do total disparado — a trilha vazia É a perda da etapa.
- * Todo valor tem rótulo direto na ponta da barra: não existe número que só o
- * tooltip conte.
+ * Funil de leads. Uma série (o volume que sobra em cada etapa) em ouro,
+ * sobre a trilha do total de leads — a trilha vazia É quem ainda não chegou
+ * naquela etapa. Todo valor tem rótulo direto na ponta da barra: não existe
+ * número que só o tooltip conte.
  */
 function Funil({ etapas, base }: { etapas: Etapa[]; base: number }) {
   const altura = etapas.length * FUNIL_LINHA
@@ -85,7 +74,7 @@ function Funil({ etapas, base }: { etapas: Etapa[]; base: number }) {
       viewBox={`0 0 ${FUNIL_W} ${altura}`}
       className="h-auto w-full"
       role="img"
-      aria-label={`Funil das campanhas: ${etapas
+      aria-label={`Funil de leads: ${etapas
         .map((e) => `${e.rotulo}, ${inteiro.format(e.valor)}`)
         .join('; ')}.`}
     >
@@ -162,168 +151,143 @@ function Tile({ rotulo, valor, nota }: { rotulo: string; valor: string; nota: st
 
 export default function Reports() {
   const { metrics } = useMetrics()
-  const { campanhas } = useCampanhas()
 
-  const c = metrics.campanhas
+  const semLeads = metrics.totalLeads === 0
 
   const etapas: Etapa[] = [
-    { rotulo: 'Enviados', valor: c.enviados, nota: `${inteiro.format(c.total)} campanhas` },
-    {
-      rotulo: 'Entregues',
-      valor: c.entregues,
-      nota: `${porcento.format(c.taxaEntrega)} dos enviados`,
-    },
-    {
-      rotulo: 'Respondidos',
-      valor: c.respondidos,
-      nota: `${porcento.format(c.taxaResposta)} dos entregues`,
-    },
+    { rotulo: 'Novos', valor: metrics.porEtapa.novo, nota: 'Ainda sem contato' },
+    { rotulo: 'Contatados', valor: metrics.porEtapa.contatado, nota: 'Conversa iniciada' },
     {
       rotulo: 'Qualificados',
-      valor: c.qualificados,
-      nota: `${porcento.format(c.taxaQualificacao)} dos respondidos`,
+      valor: metrics.porEtapa.qualificado,
+      nota: 'Produto e momento identificados',
     },
-    {
-      rotulo: 'Convertidos',
-      valor: c.convertidos,
-      nota: `${porcento.format(c.taxaConversao)} dos qualificados`,
-    },
+    { rotulo: 'Convertidos', valor: metrics.porEtapa.convertido, nota: 'Assinatura fechada' },
+    { rotulo: 'Perdidos', valor: metrics.porEtapa.perdido, nota: 'Sem interesse' },
   ]
 
-  // Ordenar por desempenho é ordenação, não recoloração: toda campanha usa o
-  // mesmo ouro, então mudar a ordem não repinta ninguém.
-  const linhas = campanhas
-    .map((campanha) => ({
-      ...campanha,
-      taxa: campanha.entregues > 0 ? campanha.respondidos / campanha.entregues : 0,
+  const segmentos = (Object.keys(ROTULO_SEGMENTO) as Segmento[])
+    .map((s) => ({
+      segmento: s,
+      total: metrics.porSegmento[s],
+      fatia: metrics.totalLeads > 0 ? metrics.porSegmento[s] / metrics.totalLeads : 0,
     }))
-    .sort((a, b) => b.taxa - a.taxa)
+    .sort((a, b) => b.total - a.total)
 
   return (
     <div className="h-full overflow-y-auto px-8 py-8">
       <header className="reveal-rise">
         <h1 className="t-display-xl text-ink">Relatórios</h1>
         <p className="mt-3 max-w-prose t-body-md text-body">
-          Desempenho das {inteiro.format(c.total)} campanhas de reativação, do disparo à
-          assinatura fechada.
+          Como os leads entram, onde eles param e quanto a operação conversa.
         </p>
       </header>
 
       <section
-        aria-label="Resumo das campanhas"
+        aria-label="Resumo da operação"
         className="reveal-rise mt-8 grid grid-cols-2 gap-4 xl:grid-cols-4"
         style={{ animationDelay: '60ms' }}
       >
         <Tile
-          rotulo="Mensagens enviadas"
-          valor={inteiro.format(c.enviados)}
-          nota={`em ${inteiro.format(c.total)} campanhas`}
+          rotulo="Leads na base"
+          valor={inteiro.format(metrics.totalLeads)}
+          nota="Cadastro completo"
         />
         <Tile
-          rotulo="Taxa de entrega"
-          valor={porcento.format(c.taxaEntrega)}
-          nota={`${inteiro.format(c.entregues)} chegaram ao destino`}
+          rotulo="Qualificados"
+          valor={inteiro.format(metrics.porEtapa.qualificado)}
+          nota={`${porcento.format(
+            metrics.totalLeads > 0 ? metrics.porEtapa.qualificado / metrics.totalLeads : 0
+          )} da base`}
         />
         <Tile
-          rotulo="Taxa de resposta"
-          valor={porcento.format(c.taxaResposta)}
-          nota={`${inteiro.format(c.respondidos)} responderam`}
+          rotulo="Conversas"
+          valor={inteiro.format(metrics.conversas.total)}
+          nota={`${inteiro.format(metrics.conversas.filaAtendimento)} na fila`}
         />
         <Tile
-          rotulo="Assinaturas fechadas"
-          valor={inteiro.format(c.convertidos)}
-          nota={`${porcento.format(c.enviados > 0 ? c.convertidos / c.enviados : 0)} dos enviados`}
+          rotulo="Mensagens"
+          valor={inteiro.format(metrics.mensagens.total)}
+          nota={`${inteiro.format(metrics.mensagens.recebidas)} recebidas`}
         />
       </section>
 
       <Card className="reveal-rise mt-6" style={{ animationDelay: '120ms' }}>
         <CardHeader>
-          <CardTitle>Funil das campanhas</CardTitle>
+          <CardTitle>Funil de leads</CardTitle>
           <CardDescription>
-            De {inteiro.format(c.enviados)} disparos a {inteiro.format(c.convertidos)}{' '}
-            assinaturas. A trilha clara atrás de cada barra é o total disparado — o vazio é
-            a perda da etapa.
+            Onde a base está parada. A trilha clara atrás de cada barra é o total de leads —
+            o vazio é quem ainda não chegou naquela etapa.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Funil etapas={etapas} base={c.enviados} />
+          {semLeads ? (
+            <p className="py-6 t-body-sm text-mute">
+              Nenhum lead cadastrado ainda. O funil aparece assim que a primeira conversa
+              chegar.
+            </p>
+          ) : (
+            <Funil etapas={etapas} base={metrics.totalLeads} />
+          )}
         </CardContent>
       </Card>
 
       <Card className="reveal-rise mt-6" style={{ animationDelay: '180ms' }}>
         <CardHeader>
-          <CardTitle>Desempenho por campanha</CardTitle>
+          <CardTitle>Leads por produto</CardTitle>
           <CardDescription>
-            Ordenado pela taxa de resposta — respondidos sobre entregues. A última linha é o
-            agregado das {inteiro.format(c.total)} campanhas.
+            A separação que o bot faz na entrada: quem procura a Artha, quem é planejador
+            financeiro e quem chegou por outro assunto.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Campanha</TableHead>
-                <TableHead className="text-right">Enviados</TableHead>
-                <TableHead className="text-right">Entregues</TableHead>
-                <TableHead className="text-right">Respondidos</TableHead>
-                <TableHead>Taxa de resposta</TableHead>
-                <TableHead className="text-right">Convertidos</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {linhas.map((linha) => (
-                <TableRow key={linha.id}>
-                  <TableCell className="whitespace-normal">
-                    <span className="block t-body-sm-strong">{linha.nome}</span>
-                    <Tag variant="outlined" className="mt-1.5">
-                      {ALVO[linha.segmentoAlvo]}
-                    </Tag>
-                  </TableCell>
+          {semLeads ? (
+            <p className="py-6 t-body-sm text-mute">
+              Nenhum lead cadastrado ainda.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Produto</TableHead>
+                  <TableHead className="text-right">Leads</TableHead>
+                  <TableHead>Fatia da base</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {segmentos.map((linha) => (
+                  <TableRow key={linha.segmento}>
+                    <TableCell className="t-body-sm-strong">
+                      {ROTULO_SEGMENTO[linha.segmento]}
+                    </TableCell>
+                    <TableCell className="text-right tabular">
+                      {inteiro.format(linha.total)}
+                    </TableCell>
+                    <TableCell>
+                      <span className="flex items-center gap-3">
+                        <BarraTaxa taxa={linha.fatia} />
+                        <span className="tabular">{porcentoFixo.format(linha.fatia)}</span>
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TableCell>Toda a base</TableCell>
                   <TableCell className="text-right tabular">
-                    {inteiro.format(linha.enviados)}
-                  </TableCell>
-                  <TableCell className="text-right tabular">
-                    {inteiro.format(linha.entregues)}
-                  </TableCell>
-                  <TableCell className="text-right tabular">
-                    {inteiro.format(linha.respondidos)}
+                    {inteiro.format(metrics.totalLeads)}
                   </TableCell>
                   <TableCell>
                     <span className="flex items-center gap-3">
-                      <BarraTaxa taxa={linha.taxa} />
-                      <span className="tabular">{porcentoFixo.format(linha.taxa)}</span>
+                      <BarraTaxa taxa={1} />
+                      <span className="tabular">{porcentoFixo.format(1)}</span>
                     </span>
                   </TableCell>
-                  <TableCell className="text-right tabular">
-                    {inteiro.format(linha.convertidos)}
-                  </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell>Todas as campanhas</TableCell>
-                <TableCell className="text-right tabular">
-                  {inteiro.format(c.enviados)}
-                </TableCell>
-                <TableCell className="text-right tabular">
-                  {inteiro.format(c.entregues)}
-                </TableCell>
-                <TableCell className="text-right tabular">
-                  {inteiro.format(c.respondidos)}
-                </TableCell>
-                <TableCell>
-                  <span className="flex items-center gap-3">
-                    <BarraTaxa taxa={c.taxaResposta} />
-                    <span className="tabular">{porcentoFixo.format(c.taxaResposta)}</span>
-                  </span>
-                </TableCell>
-                <TableCell className="text-right tabular">
-                  {inteiro.format(c.convertidos)}
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
+              </TableFooter>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
