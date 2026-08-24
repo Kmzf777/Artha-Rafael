@@ -236,8 +236,9 @@ export default function Reports() {
         <CardHeader>
           <CardTitle>Leads por produto</CardTitle>
           <CardDescription>
-            A separação que o bot faz na entrada: quem procura a Artha, quem é planejador
-            financeiro e quem chegou por outro assunto.
+            O bot separa, na entrada, quem procura a Artha (pessoa física) de quem é
+            planejador financeiro e usaria a Dhana. LucIA — o produto para escritórios de
+            planejamento — não faz parte do roteiro do bot, por isso a linha fica zerada.
           </CardDescription>
         </CardHeader>
         <CardContent>

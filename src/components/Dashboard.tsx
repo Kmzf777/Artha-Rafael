@@ -162,6 +162,10 @@ export default function Dashboard() {
   const { conta } = useConta()
   const { conversas, naoLidas } = useConversations()
 
+  // Mesma constante que `Reports.tsx` já usa: base zerada troca o número-herói
+  // por uma frase, em vez de estampar "0" na maior tipografia do sistema.
+  const semLeads = metrics.totalLeads === 0
+
   // Fila = quem falou por último foi o lead. Mesma régua de
   // `metrics.conversas.filaAtendimento`. Quem espera há mais tempo vem primeiro.
   const fila = conversas
@@ -193,7 +197,7 @@ export default function Dashboard() {
         </header>
 
         {/* Quatro tiles `card-soft-tinted`: número em `--t-display-lg`, rótulo
-            em caption. O 612 fica de fora — é a fala da banda abaixo. */}
+            em caption. */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Tile
             rotulo="Leads na base"
@@ -233,19 +237,30 @@ export default function Dashboard() {
           <CardContent className="px-8">
             <div className="min-w-0">
               <p className="t-caption text-on-ink opacity-70">Leads qualificados</p>
-              <p className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                <span className="t-display-xxl tabular text-accent-on-ink">
-                  {NUM.format(metrics.porEtapa.qualificado)}
-                </span>
-                <span className="t-display-md text-on-ink">
-                  leads com produto e momento identificados
-                </span>
-              </p>
-              <p className="mt-3 max-w-prose t-body-md text-on-ink opacity-75">
-                {NUM.format(metrics.porSegmento.artha)} para a Artha e{' '}
-                {NUM.format(metrics.porSegmento.dhana)} para a Dhana — separados na entrada,
-                antes de o operador abrir a conversa.
-              </p>
+              {semLeads ? (
+                // Base zerada: sem número, o ouro do herói não tem o que
+                // carimbar. A frase troca o número, não empresta a cor dele.
+                <p className="mt-2 max-w-prose t-display-sm text-on-ink">
+                  Os leads qualificados aparecem aqui assim que as primeiras conversas
+                  chegarem, separados entre Artha e Dhana.
+                </p>
+              ) : (
+                <>
+                  <p className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                    <span className="t-display-xxl tabular text-accent-on-ink">
+                      {NUM.format(metrics.porEtapa.qualificado)}
+                    </span>
+                    <span className="t-display-md text-on-ink">
+                      leads com produto e momento identificados
+                    </span>
+                  </p>
+                  <p className="mt-3 max-w-prose t-body-md text-on-ink opacity-75">
+                    {NUM.format(metrics.porSegmento.artha)} para a Artha e{' '}
+                    {NUM.format(metrics.porSegmento.dhana)} para a Dhana — separados na entrada,
+                    antes de o operador abrir a conversa.
+                  </p>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
