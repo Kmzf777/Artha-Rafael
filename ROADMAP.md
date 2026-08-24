@@ -83,10 +83,12 @@ Deixar de ser mockup: Supabase Postgres, WhatsApp Cloud API em produção
   `src/lib/telefoneCasos.ts`. (`npm run build` não foi rodado nesta atualização
   de docs.)
 
-### Bloqueado — depende de credenciais do Supabase
+### Pendente — projeto Supabase (atualizado em 2026-08-24)
 
-`NEXT_PUBLIC_SUPABASE_URL` está vazio em `.env.local`. Três itens do recorte
-não podem ser concluídos sem o projeto Supabase existir:
+As credenciais (`NEXT_PUBLIC_SUPABASE_URL` e a service role key) já estão
+preenchidas em `.env.local` — ver a seção de 2026-08-24 abaixo. Três itens
+deste recorte seguem pendentes, agora por exigirem passo manual no projeto,
+não por falta de credencial:
 
 - **Aplicar a migration** `0001_schema.sql` no projeto (SQL Editor — não exige
   CLI).
@@ -122,6 +124,27 @@ Também: `env ARTHA (1).txt` passou a ser coberto pelo `.gitignore` (o padrão
 `/api/campanhas`; o relógio congelado do mock saiu de todas as telas que leem
 do Postgres, via `useAgora()`; e `/api/conta` passou a mostrar o número WABA
 real no lugar do fictício.
+
+## Em execução (2026-08-24) — bot de qualificação por botões
+
+Automação de botões no modelo da Mar Azul demonstrado na reunião de 10/08: sem
+IA, dentro do webhook, sem cron. Duas perguntas — produto (Artha ou Dhana) e
+momento — disparadas no primeiro contato de cada telefone. Spec:
+`docs/superpowers/specs/2026-08-24-bot-qualificacao-botoes-design.md`.
+
+O painel deixou de falar de reativação junto: não há base inativa, e o eixo
+passou para atendimento e qualificação. Dashboard e Relatórios passaram a medir
+leads, conversas e qualificação; a tela de login parou de prometer Reativação e
+Disparos, que saíram do menu.
+
+Bloqueio que caiu: `NEXT_PUBLIC_SUPABASE_URL` e a service role key **estão**
+configuradas. A migration `0002_bot_qualificacao.sql` (coluna `messages.button_id`
+e a tabela-trava `bot_acoes`) ainda precisa ser aplicada no SQL Editor — sem ela
+o bot estoura com erro de coluna inexistente.
+
+Bloqueio que continua: o teste ponta a ponta depende do número WABA, que a
+reunião deixou pendente no chip novo. E `BOT_QUALIFICACAO` precisa valer `on` na
+Vercel — o padrão é desligado de propósito.
 
 ## [NA FILA]
 
