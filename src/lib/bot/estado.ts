@@ -108,7 +108,18 @@ export function proximoPasso(mensagens: MensagemBot[]): Passo {
   // estado terminal evapora assim que o lead escreve depois do fecho, e ele
   // recebe de volta a pergunta que acabou de responder — o comportamento que
   // motivou este projeto.
-  if (ms.slice(0, -1).some(ehRespostaTerminal)) return CALAR
+  //
+  // O corte é a PRIMEIRA fala do bot, não o começo da lista: resposta terminal
+  // só quer dizer "o roteiro acabou" dentro de um roteiro que começou. Antes da
+  // p1, um `button_id` é de outra história — quick reply de template de
+  // disparo, campanha antiga, roteiro trocado. Sem o corte, quem responde a um
+  // disparo tocando o botão do template ouvia a p1 (o portão de primeiro
+  // contato só conta inbounds) e levava `calar` na resposta seguinte, porque a
+  // regra terminal já tinha lido aquele id desconhecido como fim de roteiro:
+  // o bot perguntava e sumia, e a coorte de maior intenção era a única que
+  // nunca chegava em `qualificarLead`.
+  const primeiraFalaDoBot = ms.findIndex(ehDoBot)
+  if (ms.slice(0, -1).some((m, i) => i > primeiraFalaDoBot && ehRespostaTerminal(m))) return CALAR
 
   // A última resposta VÁLIDA do lead define onde o roteiro está.
   const idP1 = ms.reduce<string | null>((acc, m) => (ehIdP1(m.button_id) ? m.button_id : acc), null)

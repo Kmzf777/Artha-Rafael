@@ -244,4 +244,45 @@ describe('proximoPasso', () => {
     const passo = proximoPasso([entrada(), doBot(), manual, botao('p1:artha')])
     expect(passo.acao).toBe('calar')
   })
+
+  // Quick reply de template chega como `type: 'button'` com `button.payload`
+  // no `button_id` (ver `idDoBotao` em webhookParse). O id é do template, não
+  // do roteiro — e vir ANTES da p1 não pode contar como roteiro encerrado.
+  it('24. id de template no primeiro inbound pergunta a p1 e o roteiro segue', () => {
+    const doTemplate = entrada({
+      message_type: 'button',
+      content: 'Quero voltar',
+      button_id: 'quero_voltar',
+    })
+    expect(proximoPasso([doTemplate])).toEqual({ acao: 'perguntar', pergunta: P1 })
+    expect(proximoPasso([doTemplate, doBot(), botao('p1:artha')])).toEqual({
+      acao: 'perguntar',
+      pergunta: P2_POR_RAMO['p1:artha'],
+    })
+  })
+
+  it('25. quem responde a um disparo tocando o botão do template é qualificado', () => {
+    const camp = disparo()
+    const doTemplate = entrada({
+      message_type: 'button',
+      content: 'Quero voltar',
+      button_id: 'quero_voltar',
+    })
+    expect(proximoPasso([camp, doTemplate])).toEqual({ acao: 'perguntar', pergunta: P1 })
+
+    const passo = proximoPasso([
+      camp,
+      doTemplate,
+      doBot(),
+      botao('p1:dhana'),
+      doBot(),
+      botao('p2:ate20'),
+    ])
+    expect(passo).toEqual({
+      acao: 'encerrar',
+      idP1: 'p1:dhana',
+      idP2: 'p2:ate20',
+      comFecho: true,
+    })
+  })
 })
