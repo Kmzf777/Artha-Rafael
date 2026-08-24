@@ -174,3 +174,32 @@ export async function mudarEtapaLead(id: string, stage: Lead['stage']): Promise<
   if (error) throw new Error(`mudarEtapaLead: ${error.message}`)
   return paraDominio(data as LinhaLead)
 }
+
+/**
+ * Grava o resultado do roteiro do bot. Spec 2026-08-24 §3.4.
+ *
+ * `segmento` só vem quando a p1 decidiu um (artha ou dhana). Em `p1:outro`
+ * ninguém foi qualificado: entra a tag e nada mais, e a etapa fica como estava.
+ *
+ * As tags são unidas, não substituídas — o lead pode ter vindo de importação
+ * com tags próprias, e o bot não é dono da coluna.
+ */
+export async function qualificarLead(
+  id: string,
+  dados: { segmento?: Lead['segmento']; tag?: string }
+): Promise<void> {
+  const atual = await buscarLead(id)
+  if (!atual) return
+
+  const patch: Record<string, unknown> = { ultima_interacao_em: new Date().toISOString() }
+  if (dados.segmento) {
+    patch.segmento = dados.segmento
+    patch.stage = 'qualificado'
+  }
+  if (dados.tag && !atual.tags.includes(dados.tag)) {
+    patch.tags = [...atual.tags, dados.tag]
+  }
+
+  const { error } = await db().from('leads').update(patch).eq('id', id)
+  if (error) throw new Error(`qualificarLead: ${error.message}`)
+}

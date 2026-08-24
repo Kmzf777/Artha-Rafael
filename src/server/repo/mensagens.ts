@@ -2,6 +2,8 @@
 // A conversa é DERIVADA de `messages` pela mesma `conversationKey` que o
 // frontend usa — replicá-la em tabela criaria duas fontes de verdade. Spec §4.2.
 import 'server-only'
+import type { MensagemBot } from '@/lib/bot/estado'
+import { AUTOR_BOT } from '@/lib/bot/roteiro'
 import { conversationKey } from '@/lib/conversationKey'
 import type { Conversation, Message as MensagemFio } from '@/lib/conversationTypes'
 import { getWindowStatus } from '@/lib/janela24h'
@@ -54,6 +56,30 @@ export async function mensagensDoCard(key: string): Promise<MensagemUI[]> {
     delete m.lead_id
     return m as MensagemUI
   })
+}
+
+/**
+ * Histórico de uma conversa na forma mínima que `proximoPasso` consome.
+ *
+ * Não reusa `mensagensDoCard`: aquela devolve `MensagemUI`, que não declara
+ * `enviado_por` nem `button_id` — justamente os dois campos de que a decisão do
+ * bot depende. Selecionar as colunas certas aqui é mais honesto que confiar em
+ * campos que vêm no runtime mas não no tipo.
+ */
+export async function historicoParaBot(
+  phone: string,
+  phoneId: string | null
+): Promise<MensagemBot[]> {
+  let q = db()
+    .from('messages')
+    .select('direction,created_at,message_type,content,button_id,enviado_por')
+    .eq('phone', phone)
+    .order('created_at', { ascending: true })
+  q = phoneId ? q.eq('phone_id', phoneId) : q.is('phone_id', null)
+
+  const { data, error } = await q
+  if (error) throw new Error(`historicoParaBot: ${error.message}`)
+  return (data ?? []) as MensagemBot[]
 }
 
 /**
@@ -264,9 +290,13 @@ export async function conversasEMensagens(): Promise<{
       if (card.janela24hExpiraEm === null) {
         card.janela24hExpiraEm = new Date(new Date(linha.created_at).getTime() + WINDOW_MS).toISOString()
       }
-    } else if (card.atribuidoA === null && linha.enviado_por) {
+    } else if (card.atribuidoA === null && linha.enviado_por && linha.enviado_por !== AUTOR_BOT) {
       // Não existe coluna de atribuição no schema. O sinal honesto disponível é
       // `enviado_por`: quem respondeu à mão por último é quem está atendendo.
+      //
+      // O bot é a exceção: ele não atende ninguém. Se contasse aqui, toda
+      // conversa que ele tocasse apareceria com operador atribuído e sairia da
+      // fila de quem deveria assumi-la.
       card.atribuidoA = linha.enviado_por
     }
   }

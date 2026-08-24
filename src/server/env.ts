@@ -43,4 +43,9 @@ export const env = {
     const bruto = Number(process.env.DISPARO_LIMITE_DIARIO)
     return Number.isFinite(bruto) && bruto > 0 ? Math.floor(bruto) : 250
   },
+  get botQualificacao() {
+    // Padrão DESLIGADO de propósito: um deploy sem a variável configurada não
+    // pode começar a mandar mensagem automática para a base do cliente.
+    return (process.env.BOT_QUALIFICACAO ?? 'off') === 'on'
+  },
 }
