@@ -8,9 +8,8 @@
 // bot continuaria enxergando a conversa antiga e continuaria calado. O reset que
 // não apaga mensagem não reseta nada.
 import 'server-only'
-import { ehComandoReset, podeResetar } from '@/lib/bot/comandos'
+import { ehComandoReset } from '@/lib/bot/comandos'
 import { conversationKey } from '@/lib/conversationKey'
-import { env } from '../env'
 import { enviarTexto } from '../meta/client'
 import { db } from '../supabase'
 
@@ -23,14 +22,18 @@ type Alvo = { phone: string | null; phoneId: string | null }
  * Trata a mensagem se ela for o comando. Devolve `true` quando tratou, e aí o
  * chamador não deve seguir para o bot de qualificação.
  *
- * Comando de quem não está autorizado é ignorado em silêncio, sem resposta: dizer
- * "você não pode" ensina que o comando existe.
+ * SEM LISTA DE AUTORIZADOS: qualquer telefone pode resetar o próprio cadastro.
+ * O alcance é o que torna isso aceitável — o comando só apaga dado de QUEM o
+ * mandou, nunca de terceiro. O risco que sobra é um lead de verdade digitar
+ * exatamente `!reset` e perder o próprio histórico; em troca, testar o roteiro
+ * de novo não depende de configuração nem de redeploy. Para voltar a fechar,
+ * ver `podeResetar` no histórico do git.
  */
 export async function tentarReset(alvo: Alvo, texto: string | null): Promise<boolean> {
   if (!ehComandoReset(texto)) return false
-  if (!podeResetar(alvo.phone, env.resetTelefones)) return false
+  if (!alvo.phone) return false
 
-  const phone = alvo.phone as string // `podeResetar` já recusou nulo
+  const phone = alvo.phone
 
   // Todas as instâncias, não só a deste `phone_id`: reset é da pessoa inteira.
   // Inclui a própria mensagem `!reset`, que o webhook já gravou antes daqui.

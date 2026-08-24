@@ -43,15 +43,4 @@ export const env = {
     const bruto = Number(process.env.DISPARO_LIMITE_DIARIO)
     return Number.isFinite(bruto) && bruto > 0 ? Math.floor(bruto) : 250
   },
-  get resetTelefones() {
-    // Telefones autorizados a mandar `!reset`, separados por vírgula. VAZIO por
-    // padrão, e vazio desliga o comando — ele apaga lead e histórico sem
-    // confirmação, disparado por quem manda mensagem. Ver `src/lib/bot/comandos.ts`.
-    return process.env.BOT_RESET_TELEFONES ?? ''
-  },
-  get botQualificacao() {
-    // Padrão DESLIGADO de propósito: um deploy sem a variável configurada não
-    // pode começar a mandar mensagem automática para a base do cliente.
-    return (process.env.BOT_QUALIFICACAO ?? 'off') === 'on'
-  },
 }

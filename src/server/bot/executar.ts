@@ -6,7 +6,6 @@ import { proximoPasso } from '@/lib/bot/estado'
 import { AUTOR_BOT, FECHO, REPETICAO, SEGMENTO_POR_P1, TAG_POR_RESPOSTA } from '@/lib/bot/roteiro'
 import { getWindowStatus } from '@/lib/janela24h'
 import type { Segmento } from '@/mock/types'
-import { env } from '../env'
 import { enviarBotoes, enviarTexto } from '../meta/client'
 import { qualificarLead } from '../repo/leads'
 import { historicoParaBot, inserirMensagem } from '../repo/mensagens'
@@ -33,7 +32,6 @@ async function tomarATrava(inboundMessageId: string): Promise<boolean> {
 }
 
 export async function executarBot(gatilho: Gatilho): Promise<void> {
-  if (!env.botQualificacao) return
   if (!gatilho.phone) return
 
   const historico = await historicoParaBot(gatilho.phone, gatilho.phoneId)

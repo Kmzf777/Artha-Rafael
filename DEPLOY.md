@@ -12,7 +12,7 @@ projeto na Vercel resolve tudo, e é isso que faz o webhook da Meta funcionar �
 A migration `supabase/migrations/0002_bot_qualificacao.sql` (coluna
 `messages.button_id` e a tabela-trava `bot_acoes`) precisa estar aplicada no
 SQL Editor do Supabase **antes** de subir o deploy que a usa — mesmo em ambiente
-onde o bot de qualificação (`BOT_QUALIFICACAO`) ainda está `off`.
+mesmo antes de o bot de qualificação entrar em cena.
 
 O motivo é que `inserirMensagem` grava `button_id` em **toda** mensagem de
 entrada no webhook, esteja o bot ligado ou não. Sem a coluna, o PostgREST
@@ -63,8 +63,10 @@ Os valores estão no `.env.local`, que não vai para o git.
 | `PAINEL_USUARIO` / `PAINEL_SENHA` | **obrigatórias em produção** — ver §5 |
 | `DISPARO_LIMITE_DIARIO` | `250` |
 | `GRAPH_API_VERSION` | `v21.0` |
-| `BOT_QUALIFICACAO` | `on` liga o bot de botões; qualquer outro valor desliga |
-| `BOT_RESET_TELEFONES` | telefones que podem mandar `!reset`; vazio desliga |
+
+**O bot de qualificação não tem chave.** Ele está sempre ativo: responde ao
+primeiro contato de cada telefone e cala assim que um operador entra na conversa.
+Não há variável para ligar ou desligar — se precisar parar, é deploy.
 
 **`.env.local` não vale aqui.** Ele é local e está no `.gitignore` — nunca chega
 à Vercel. Editar aquele arquivo não muda nada em produção; a variável tem de ser
@@ -75,25 +77,19 @@ está no ar: depois de criar ou alterar, use **Deployments → ⋯ → Redeploy*
 bot que continua mudo depois de você ligar `BOT_QUALIFICACAO` quase sempre é
 isto.
 
-### `BOT_QUALIFICACAO` — o padrão é desligado
+### `!reset` — o comando de teste, sem configuração
 
-De propósito: um deploy sem a variável não começa a mandar mensagem automática
-para a base do cliente. Ligar é uma decisão, não um efeito colateral de subir
-código.
+Mandar `!reset` no WhatsApp apaga o lead e **todo o histórico** daquele número,
+para o roteiro poder ser testado de novo sem trocar de chip. Não há variável: o
+comando está sempre disponível.
 
-### `BOT_RESET_TELEFONES` — só telefone de teste
+O que o torna aceitável é o alcance — ele só apaga dado de **quem o mandou**,
+nunca de terceiro. O risco que sobra é um lead de verdade digitar exatamente
+`!reset` e perder o próprio histórico de conversa. Em troca, retestar não
+depende de configuração nem de redeploy.
 
-`!reset` mandado no WhatsApp apaga o lead e **todo o histórico** daquele número,
-sem confirmação, para o roteiro poder ser testado de novo sem trocar de chip. É
-comando destrutivo disparado por quem manda mensagem, e o número da Artha vai
-ser público.
-
-Por isso a lista vazia desliga o comando, e é o padrão. Ponha só os telefones de
-quem testa, em qualquer forma (`5534988861441`, `34988861441` e
-`+55 (34) 98886-1441` são a mesma pessoa). Comando de número fora da lista é
-ignorado em silêncio.
-
-Antes de entregar o número ao cliente, **esvazie esta variável.**
+Se um dia isso incomodar, o commit que removeu a lista de autorizados
+(`podeResetar`) está no histórico do git e reverter é barato.
 
 ## 3. Região: `gru1`
 
