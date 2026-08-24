@@ -45,7 +45,7 @@ documento corrige isso.
 - Tela nova. O resultado do bot aparece em Conversas e Leads, que já existem.
 - Cron, fila ou agendamento. O bot é reativo ao webhook — nada nele depende do
   cron de 10 minutos que exige plano Pro da Vercel.
-- Retentativa de envio. Ver §4.7.
+- Retentativa de envio. Ver §3.7.
 - Mensagem de lista (`list`, até 10 opções). Três botões bastam para o roteiro.
 - Template com botão de resposta rápida. O bot só fala dentro da janela de 24h,
   e o gatilho é uma mensagem de entrada, que abre a janela.
