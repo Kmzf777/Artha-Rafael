@@ -11,6 +11,8 @@
 // com texto branco; no escuro `--ink` já é branco e `--on-ink` já é preto, então
 // o painel continua sendo o oposto exato da página.
 
+import Image from 'next/image'
+
 const DESTAQUES = [
   { titulo: 'Reativação', nota: 'Régua por tempo sem acesso' },
   { titulo: 'Conversas', nota: 'Janela de 24h à vista' },
@@ -21,11 +23,19 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex min-h-screen flex-col bg-canvas lg:grid lg:grid-cols-2">
       <section className="flex flex-col gap-8 bg-ink p-8 text-on-ink lg:justify-between">
-        {/* Wordmark no mesmo tratamento da Sidebar — sentence-case, peso 700,
-            sem letter-spacing, "System" em `--mute`. Aqui em polaridade
-            invertida, porque a superfície é a invertida. */}
-        <p className="reveal-rise t-display-md">
-          Artha<span className="text-mute"> System</span>
+        {/* Logotipo no mesmo tratamento da Sidebar, com "System" em texto.
+            Aqui em polaridade invertida, porque a superfície é a invertida:
+            `logo-on-ink` faz a marca virar silhueta clara sobre o painel. */}
+        <p className="reveal-rise flex items-center gap-2 t-display-md">
+          <Image
+            src="/logo-artha.png"
+            alt="Artha"
+            width={125}
+            height={40}
+            priority
+            className="logo-on-ink h-10 w-auto"
+          />
+          <span className="text-mute">System</span>
         </p>
 
         <div className="reveal-rise max-w-lg" style={{ animationDelay: '60ms' }}>

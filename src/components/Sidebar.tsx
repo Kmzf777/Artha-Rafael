@@ -1,6 +1,7 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import {
@@ -112,12 +113,18 @@ export default function Sidebar({ activeTab, onTabChange, unreadCounts }: Sideba
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-hairline bg-canvas">
-      {/* Wordmark. Sentence-case, peso 700, sem letter-spacing — o doc é
-          categórico: a face de display nunca é espaçada. */}
-      <div className="px-5 pt-8 pb-6">
-        <p className="t-display-md text-ink">
-          Artha<span className="text-body"> System</span>
-        </p>
+      {/* Logotipo. A marca cobre "Artha"; o sufixo "System" segue em texto,
+          no mesmo tratamento mudo de antes — sentence-case, sem letter-spacing. */}
+      <div className="flex items-center gap-2 px-5 pt-8 pb-6">
+        <Image
+          src="/logo-artha.png"
+          alt="Artha"
+          width={100}
+          height={32}
+          priority
+          className="logo-on-canvas h-8 w-auto"
+        />
+        <span className="t-display-md text-body">System</span>
       </div>
 
       <nav className="flex-1 space-y-1 px-3" aria-label="Seções do painel">

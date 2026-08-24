@@ -248,6 +248,18 @@
   .elev-2 { box-shadow: var(--elev-2); }
   .elev-3 { box-shadow: var(--elev-3); }
 
+  /* ── Logotipo ──────────────────────────────────────────────────────────
+     O arquivo da marca é colorido e existe em uma versão só. Sobre `--canvas`
+     ele vale como está; sobre `--ink` o azul-marinho do lettering some, então
+     ali ele vira silhueta na cor de `--on-ink`. `brightness(0)` achata para
+     preto e `invert(1)` leva a branco — a ordem do filtro é fixa no CSS.
+     São as duas únicas regras do sistema que dependem do tema por classe e não
+     por token: filtro de imagem não é expressável em token de cor. */
+  .logo-on-canvas { filter: none; }
+  .dark .logo-on-canvas { filter: brightness(0) invert(1); }
+  .logo-on-ink { filter: brightness(0) invert(1); }
+  .dark .logo-on-ink { filter: none; }
+
   /* Barra indicadora da aba ativa — papel 1 do Ouro Artha (spec §3.2).
      3px na borda esquerda da linha de nav. */
   .nav-indicator {

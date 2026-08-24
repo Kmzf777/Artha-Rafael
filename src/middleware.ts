@@ -50,6 +50,10 @@ export async function middleware(req: NextRequest) {
   return NextResponse.redirect(destino)
 }
 
+// `logo-artha.png` fica de fora porque a tela de login o exibe antes de haver
+// sessão — e porque o otimizador de imagem busca o arquivo por HTTP: gateado,
+// ele receberia o redirecionamento para /login e devolveria 400 no lugar da
+// marca.
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.svg).*)'],
+  matcher: ['/((?!_next/static|_next/image|logo-artha.png).*)'],
 }
