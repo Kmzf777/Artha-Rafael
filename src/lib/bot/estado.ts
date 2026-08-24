@@ -58,8 +58,16 @@ function ehDoBot(m: MensagemBot): boolean {
 // preenchida deixaria de desligar o bot justamente onde a regra importa. O
 // disparo de campanha também grava autoria nula — só que ele não é fala de
 // ninguém, e a §3.1 manda que receber template continue sendo primeiro contato.
+//
+// A checagem é de valor ausente-ou-nulo (`!m.campanha_id`, não `=== null`) DE
+// PROPÓSITO: se alguém esquecer a coluna no `select` de `historicoParaBot`, o
+// campo chega `undefined` e a comparação estrita faria esta função devolver
+// false para todo outbound — a regra do operador morreria em silêncio, sem o
+// `tsc` avisar. Assim, o esquecimento faz o bot calar onde deveria falar. É o
+// lado errado, mas é o barato: um lead a menos qualificado, contra o bot
+// atropelando um atendimento humano.
 function ehDeHumano(m: MensagemBot): boolean {
-  return m.direction === 'outbound' && m.enviado_por !== AUTOR_BOT && m.campanha_id === null
+  return m.direction === 'outbound' && m.enviado_por !== AUTOR_BOT && !m.campanha_id
 }
 
 /** Resposta que encerra o roteiro: resposta da p2, `p1:outro`, ou id fora do roteiro. */
