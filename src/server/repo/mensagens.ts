@@ -74,7 +74,21 @@ export async function historicoParaBot(
     .from('messages')
     .select('direction,created_at,message_type,content,button_id,enviado_por,campanha_id')
     .eq('phone', phone)
+    // `id` desempata, como em `listarLeads`. O timestamp da Meta tem resolução
+    // de SEGUNDO (`webhookParse` faz `ts * 1000`), então dois toques rápidos no
+    // mesmo botão gravam `created_at` idêntico — e o Postgres não promete ordem
+    // estável para empate sem chave secundária. Sem isto, a mesma conversa pode
+    // voltar em ordens diferentes entre duas execuções, e `proximoPasso` decide
+    // pela última mensagem: a decisão deixaria de ser função do histórico, que é
+    // a propriedade que dispensa a tabela de sessão e sustenta a idempotência
+    // das reentregas.
+    //
+    // O que isto compra é determinismo, não a ordem verdadeira: `id` é uuid, e o
+    // desempate sai arbitrário, não cronológico. Qual dos dois toques veio antes
+    // dentro do mesmo segundo é informação que o sistema não tem — mas decidir
+    // sempre igual sobre o mesmo histórico é o que importa aqui.
     .order('created_at', { ascending: true })
+    .order('id', { ascending: true })
   q = phoneId ? q.eq('phone_id', phoneId) : q.is('phone_id', null)
 
   const { data, error } = await q
