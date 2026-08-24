@@ -70,6 +70,21 @@ Receber disparo não conta como conversa: quem recebeu template e nunca escreveu
 continua sendo primeiro contato. Isso faz o bot cobrir tanto o lead que chega do
 Instagram quanto quem responde a um disparo futuro, sem precisar de dois fluxos.
 
+**O discriminador é `campanha_id`, não `enviado_por`.** Uma revisão durante a
+implementação achou a contradição: disparo de campanha grava `enviado_por` nulo
+(`src/server/fila.ts`), e resposta manual de operador **também** grava nulo hoje
+(`/api/mensagens` faz `enviado_por: enviadoPor ?? null`, e a tela não manda o
+campo). Tratar nulo como humano mataria o primeiro caso; tratar nulo como
+não-humano mataria a regra do operador, que importa mais. `campanha_id` separa
+os dois de verdade, e por isso entrou em `MensagemBot`.
+
+A checagem é por valor ausente-ou-nulo (`!campanha_id`), não por igualdade a
+`null`. Se alguém editar o `select` de `historicoParaBot` e esquecer a coluna, o
+campo chega `undefined`: com a negação, mensagem de campanha passa a contar como
+humana e o bot cala demais; com a igualdade, **nenhum** outbound contaria como
+humano e o bot passaria por cima de atendimento humano. Falhar para o lado
+barato é decisão consciente.
+
 Hoje a segunda condição é verdadeira para todo mundo, porque a base está vazia.
 Ela existe para a segunda conversa de cada pessoa: quem já escreveu uma vez nunca
 mais vê o bot.
@@ -132,6 +147,15 @@ Três situações, checadas nesta ordem:
 | O roteiro terminou | Bot desligado, lead qualificado na fila |
 | Texto livre no lugar do botão | Repete a pergunta **uma** vez; se vier texto de novo, encerra e entrega |
 
+**"O roteiro terminou" precisa ser derivado do histórico, não da última
+mensagem.** A primeira implementação lia a resposta da p2 só da última mensagem,
+e o estado terminal evaporava assim que o lead escrevia depois do fecho: ele
+recebia de volta a pergunta que tinha acabado de responder — exatamente o
+comportamento que motivou este projeto. A regra correta é: uma resposta terminal
+(id de p2, `p1:outro`, ou id fora do roteiro) que esteja em qualquer posição
+**anterior** à última mensagem cala o bot. Se ela É a última, é agora que o bot
+age.
+
 Texto livre em vez de botão quase sempre é pergunta real — "quanto custa?" —, não
 erro de uso. Repetir uma vez cobre quem não viu o botão. Insistir duas vezes com
 quem está escrevendo é exatamente o robô falando besteira que fez o cliente
@@ -179,6 +203,14 @@ quando a resposta demora mais que ~5s, e a reentrega chega com o mesmo `wamid`,
 que `messages.message_id` já rejeita por unicidade. Reprocessar o mesmo histórico
 produz a mesma decisão — e se o bot já respondeu depois daquele inbound, o
 histórico contém a resposta e a decisão vira `calar`.
+
+**Isso exige que "o mesmo histórico" seja mesmo o mesmo.** O timestamp que a Meta
+manda tem resolução de segundo, então dois toques rápidos no botão empatam em
+`created_at`, e o Postgres não garante ordem estável para empate sem chave
+secundária. `historicoParaBot` desempata por `id`, como `listarLeads` já faz. O
+desempate é arbitrário — `id` é uuid, não sequência — mas é determinístico, e é
+determinismo que a idempotência precisa. A ordem verdadeira entre dois toques no
+mesmo segundo é informação que o sistema não tem.
 
 ### 3.6 A trava de concorrência
 
@@ -418,11 +450,32 @@ Todos rodam sem banco, sobre listas de mensagens construídas à mão:
 12. Telefone com inbound anterior ao da conversa atual → `calar` (não é primeiro
     contato).
 
+Sete casos vieram da revisão, depois que ela achou os defeitos da §3.1 e da §3.3:
+
+13. Lead escreve depois do fecho → `calar`.
+14. Lead toca botão depois do fecho → `calar` (não reinicia o roteiro).
+15. `p1:outro` seguido de texto → `calar`.
+16. Escalado por id desconhecido e o lead insiste → `calar`.
+17. Botão desconhecido **depois** de uma p1 válida → `encerrar` carregando o
+    `idP1` já descoberto, em vez de descartá-lo.
+18. Outbound de campanha seguido de inbound → `perguntar` a p1. Quem recebeu
+    disparo e escreve continua sendo primeiro contato.
+19. Outbound sem autoria e sem campanha → `calar`. É a forma que a resposta
+    manual de operador tem hoje, e a regra do operador precisa sobreviver a ela.
+
 E em `src/lib/webhookParse.test.ts`, que já existe:
 
-13. Payload de `interactive.button_reply` → `button_id` recebe o id e `content`
+20. Payload de `interactive.button_reply` → `button_id` recebe o id e `content`
     recebe o título.
-14. Payload de `button` de template → `button_id` recebe o `payload`.
+21. Payload de `button` de template → `button_id` recebe o `payload`.
+22. Payload de `interactive.list_reply` → `button_id` recebe o id.
+23. `button` sem `payload` e `interactive` sem `button_reply` → `button_id` nulo,
+    sem estourar. É a propriedade central do parser e não estava provada.
+
+E em `src/lib/bot/roteiro.test.ts`, oito invariantes: os limites da Cloud API
+(≤3 botões, título ≤20 caracteres, corpo ≤1024), unicidade dos ids, toda
+resposta terminal tendo tag — com os terminais **derivados** de quais botões da
+p1 não têm ramo, não listados à mão — e a ramificação por segmento.
 
 ### 7.2 Verificação manual
 
