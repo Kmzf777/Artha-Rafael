@@ -8,10 +8,7 @@ import Conversations from '@/components/Conversations'
 import Leads from '@/components/Leads'
 import Disparos from '@/components/Disparos'
 import Templates from '@/components/Templates'
-import Agendamentos from '@/components/Agendamentos'
-import Reativacao from '@/components/Reativacao'
 import Reports from '@/components/Reports'
-import ExecutiveReport from '@/components/ExecutiveReport'
 import AccountInfo from '@/components/AccountInfo'
 import { parseTab, tabHref, type ActiveTab } from '@/lib/tabs'
 
@@ -38,10 +35,7 @@ function HomeContent() {
         {activeTab === 'leads' && <Leads />}
         {activeTab === 'disparos' && <Disparos />}
         {activeTab === 'templates' && <Templates />}
-        {activeTab === 'agendamentos' && <Agendamentos />}
-        {activeTab === 'reativacao' && <Reativacao />}
         {activeTab === 'reports' && <Reports />}
-        {activeTab === 'executivo' && <ExecutiveReport />}
         {activeTab === 'account' && <AccountInfo />}
       </main>
     </div>

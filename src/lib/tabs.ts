@@ -1,5 +1,5 @@
 /**
- * As dez superfícies do painel. Registro único: a Sidebar itera esta lista e o
+ * As sete superfícies do painel. Registro único: a Sidebar itera esta lista e o
  * switch de render de `src/app/(app)/page.tsx` casa com ela.
  *
  * Não há autenticação nesta fase — nenhuma aba é restrita.
@@ -10,10 +10,7 @@ export const ACTIVE_TABS = [
   'leads',
   'disparos',
   'templates',
-  'agendamentos',
-  'reativacao',
   'reports',
-  'executivo',
   'account',
 ] as const
 

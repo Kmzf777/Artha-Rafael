@@ -255,7 +255,7 @@ export default function Dashboard() {
                 escuro. É exatamente o que `variant="secondary"` já faz. */}
             <Button
               variant="secondary"
-              onClick={() => irParaAba('reativacao')}
+              onClick={() => irParaAba('disparos')}
               className="shrink-0"
             >
               Iniciar campanha

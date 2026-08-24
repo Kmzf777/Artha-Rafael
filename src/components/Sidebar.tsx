@@ -9,10 +9,7 @@ import {
   Users,
   Send,
   LayoutTemplate,
-  CalendarClock,
-  RefreshCw,
   BarChart3,
-  LineChart,
   Settings,
   Sun,
   Moon,
@@ -34,7 +31,7 @@ import { ACTIVE_TABS, type ActiveTab } from '@/lib/tabs'
 
 type NavItem = { id: ActiveTab; label: string; icon: React.ElementType }
 
-// A ordem espelha ACTIVE_TABS — as dez superfícies, sem gate: não há
+// A ordem espelha ACTIVE_TABS — as sete superfícies, sem gate: não há
 // autenticação nesta fase.
 const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -42,10 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'leads', label: 'Leads', icon: Users },
   { id: 'disparos', label: 'Disparos', icon: Send },
   { id: 'templates', label: 'Templates', icon: LayoutTemplate },
-  { id: 'agendamentos', label: 'Agendamentos', icon: CalendarClock },
-  { id: 'reativacao', label: 'Reativação', icon: RefreshCw },
   { id: 'reports', label: 'Relatórios', icon: BarChart3 },
-  { id: 'executivo', label: 'Painel executivo', icon: LineChart },
   { id: 'account', label: 'Configurações', icon: Settings },
 ]
 

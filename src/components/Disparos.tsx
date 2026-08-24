@@ -35,7 +35,6 @@ import {
   valoresDoLead,
 } from '@/lib/disparos'
 import { formatScheduledAt } from '@/lib/scheduling'
-import { tabHref } from '@/lib/tabs'
 import { contarVariaveis } from '@/lib/templates'
 import { cn } from '@/lib/utils'
 import type { Lead, PlanoStatus, Template } from '@/mock/types'
@@ -359,8 +358,7 @@ export default function Disparos() {
         <header className="reveal-rise">
           <h1 className="t-display-xl text-ink">Disparos</h1>
           <p className="mt-3 max-w-prose t-body-md text-body">
-            Envio de template aprovado para um recorte da base, em três passos. A fila resultante
-            aparece em Agendamentos.
+            Envio de template aprovado para um recorte da base, em três passos.
           </p>
         </header>
 
@@ -391,16 +389,7 @@ export default function Disparos() {
                   ; os seguintes, a cada {SEGUNDOS_ENTRE_ENVIOS} segundos.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <Button
-                    variant="secondary"
-                    onClick={() => window.history.pushState(null, '', tabHref('agendamentos'))}
-                  >
-                    Ver a fila de agendamentos
-                    <ArrowRight aria-hidden />
-                  </Button>
-                  <Button variant="subtle" onClick={recomecar}>
-                    Novo disparo
-                  </Button>
+                  <Button onClick={recomecar}>Novo disparo</Button>
                 </div>
               </section>
             ) : (
