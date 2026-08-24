@@ -20,9 +20,8 @@ import { tabHref, type ActiveTab } from '@/lib/tabs'
 // polaridade é a pista de profundidade; repetida vira decoração) e duas listas
 // planas apoiadas em hairline, sem chrome de card.
 //
-// Nenhum número é digitado: todos saem de `useMetrics()` / `useConversations()`.
-// Os 612 inativos daqui e os 612 que a régua da Reativação encontra são o MESMO
-// 612, porque os dois vêm de `ehInativo` em `src/mock/metrics.ts`.
+// Todo número desta tela sai de `useMetrics()`, que deriva do mesmo dataset que
+// as outras telas leem. Nenhum número é digitado aqui.
 
 // O "agora" vem de `useAgora()`: relógio real, ticando. A âncora do mock parava
 // no load da página e a fila de atendimento mostrava espera congelada.
@@ -31,11 +30,6 @@ const HORA = 60 * MINUTO
 const DIA = 24 * HORA
 
 const NUM = new Intl.NumberFormat('pt-BR')
-const BRL = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-  maximumFractionDigits: 0,
-})
 
 /** Espera acumulada desde a última mensagem do lead. */
 function espera(iso: string, agora: Date): string {
@@ -208,21 +202,21 @@ export default function Dashboard() {
             atraso={0}
           />
           <Tile
-            rotulo="Assinantes ativos"
-            valor={NUM.format(metrics.ativos)}
-            nota={`Ticket médio de ${BRL.format(metrics.receita.ticketMedio)}`}
-            atraso={60}
-          />
-          <Tile
             rotulo="Fila de atendimento"
             valor={NUM.format(metrics.conversas.filaAtendimento)}
             nota="Conversas aguardando resposta"
+            atraso={60}
+          />
+          <Tile
+            rotulo="Conversas"
+            valor={NUM.format(metrics.conversas.total)}
+            nota={`${NUM.format(metrics.conversas.janelaAberta)} com janela de 24h aberta`}
             atraso={120}
           />
           <Tile
-            rotulo="Receita recorrente"
-            valor={BRL.format(metrics.receita.mrrAtual)}
-            nota="Por mês, considerando a base ativa"
+            rotulo="Qualificados"
+            valor={NUM.format(metrics.porEtapa.qualificado)}
+            nota="Produto e momento identificados"
             atraso={180}
           />
         </div>
@@ -238,16 +232,19 @@ export default function Dashboard() {
         <Card tone="dark" className="reveal-rise py-8" style={{ animationDelay: '240ms' }}>
           <CardContent className="px-8">
             <div className="min-w-0">
-              <p className="t-caption text-on-ink opacity-70">Oportunidade de reativação</p>
+              <p className="t-caption text-on-ink opacity-70">Leads qualificados</p>
               <p className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
                 <span className="t-display-xxl tabular text-accent-on-ink">
-                  {NUM.format(metrics.inativos)}
+                  {NUM.format(metrics.porEtapa.qualificado)}
                 </span>
-                <span className="t-display-md text-on-ink">inativos aguardando reativação</span>
+                <span className="t-display-md text-on-ink">
+                  leads com produto e momento identificados
+                </span>
               </p>
               <p className="mt-3 max-w-prose t-body-md text-on-ink opacity-75">
-                {BRL.format(metrics.receita.mrrRecuperavel)} por mês em receita recuperável —
-                assinaturas canceladas, trials expirados e inadimplentes que já conhecem o produto.
+                {NUM.format(metrics.porSegmento.artha)} para a Artha e{' '}
+                {NUM.format(metrics.porSegmento.dhana)} para a Dhana — separados na entrada,
+                antes de o operador abrir a conversa.
               </p>
             </div>
           </CardContent>
