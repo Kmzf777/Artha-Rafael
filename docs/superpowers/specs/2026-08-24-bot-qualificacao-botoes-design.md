@@ -61,10 +61,22 @@ o webhook entrega uma mensagem de entrada:
 
 ```
 chegou inbound
-  E o telefone não tem nenhuma mensagem inbound anterior no sistema
+  E o telefone não escreveu antes de alguma coisa ter saído daqui
   E nenhum outbound humano existe nessa conversa
   E BOT_QUALIFICACAO === 'on'
 ```
+
+**"Antes" significa antes de algo ter saído daqui, não antes desta mensagem.** A
+primeira formulação era "sem nenhuma mensagem inbound anterior", e contar
+inbounds parecia a implementação óbvia dela. Mas mandar "oi" e emendar a
+pergunta é dos comportamentos mais comuns do WhatsApp: as duas mensagens chegam
+antes de a resposta do bot ser gravada, o histórico tem dois inbounds e nenhuma
+fala do bot, e a contagem lia isso como "já escreveu antes". O bot nunca falava
+com quem manda mensagem dupla — silêncio total, sem rastro.
+
+A regra do produto não mudou: quem já conversou antes continua não vendo o bot.
+Se ninguém nunca respondeu àquela pessoa, não existe "antes" — é tudo a mesma
+chegada.
 
 Receber disparo não conta como conversa: quem recebeu template e nunca escreveu
 continua sendo primeiro contato. Isso faz o bot cobrir tanto o lead que chega do
@@ -455,8 +467,9 @@ Todos rodam sem banco, sobre listas de mensagens construídas à mão:
 9. Roteiro completo → `calar`.
 10. Botão com id fora do roteiro → `encerrar`.
 11. O último outbound do bot é posterior ao último inbound → `calar` (reentrega).
-12. Telefone com inbound anterior ao da conversa atual → `calar` (não é primeiro
-    contato).
+12. Telefone que escreveu antes de algo ter saído daqui → `calar` (não é
+    primeiro contato). Mensagem dupla na mesma chegada **não** conta: duas
+    entradas sem nenhuma saída entre elas continuam sendo o primeiro contato.
 
 Sete casos vieram da revisão, depois que ela achou os defeitos da §3.1 e da §3.3:
 
