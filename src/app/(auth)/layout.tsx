@@ -14,9 +14,9 @@
 import Image from 'next/image'
 
 const DESTAQUES = [
-  { titulo: 'Reativação', nota: 'Régua por tempo sem acesso' },
   { titulo: 'Conversas', nota: 'Janela de 24h à vista' },
-  { titulo: 'Disparos', nota: 'Template aprovado e fila' },
+  { titulo: 'Leads', nota: 'Produto e etapa de cada um' },
+  { titulo: 'Relatórios', nota: 'Funil e volume de atendimento' },
 ] as const
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -38,10 +38,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         <div className="reveal-rise max-w-lg" style={{ animationDelay: '60ms' }}>
-          <p className="t-display-xl">A base inativa volta a conversar.</p>
+          <p className="t-display-xl">Todo lead começa por uma conversa.</p>
           <p className="mt-4 t-body-lg opacity-75">
-            Atendimento, segmentação e reativação por WhatsApp em um só lugar, com a API
-            oficial da Meta e o histórico de cada pessoa à vista.
+            Atendimento e qualificação por WhatsApp em um só lugar, com a API oficial da
+            Meta e o histórico de cada pessoa à vista.
           </p>
         </div>
 
