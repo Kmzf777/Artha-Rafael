@@ -35,8 +35,14 @@ describe('ids', () => {
   })
 
   it('toda resposta terminal tem tag', () => {
+    // Terminal é todo botão da p1 sem ramo em P2_POR_RAMO — derivado, não
+    // listado na mão, para não passar em silêncio se um ramo virar terminal.
+    const terminaisP1 = P1.botoes.map((b) => b.id).filter((id) => !(id in P2_POR_RAMO))
+    expect(terminaisP1.length).toBeGreaterThan(0)
+    expect(terminaisP1).toContain('p1:outro')
+
     const terminais = [
-      'p1:outro',
+      ...terminaisP1,
       ...Object.values(P2_POR_RAMO).flatMap((p) => p.botoes.map((b) => b.id)),
     ]
     for (const id of terminais) expect(TAG_POR_RESPOSTA[id]).toBeTruthy()
