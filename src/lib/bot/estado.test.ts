@@ -26,6 +26,15 @@ function botao(id: string): MensagemBot {
   return entrada({ message_type: 'interactive', content: 'x', button_id: id })
 }
 
+/**
+ * Quick reply de template: chega como `type: 'button'` com `button.payload` no
+ * `button_id` (ver `idDoBotao` em webhookParse). O id é do template, não do
+ * roteiro.
+ */
+function doTemplate(): MensagemBot {
+  return entrada({ message_type: 'button', content: 'Quero voltar', button_id: 'quero_voltar' })
+}
+
 function doBot(): MensagemBot {
   return {
     direction: 'outbound',
@@ -60,11 +69,6 @@ describe('proximoPasso', () => {
   it('2. primeiro inbound de todos pergunta a p1', () => {
     const passo = proximoPasso([entrada()])
     expect(passo).toEqual({ acao: 'perguntar', pergunta: P1 })
-  })
-
-  it('3. quem já tinha escrito antes não vê o bot', () => {
-    const passo = proximoPasso([entrada(), entrada()])
-    expect(passo.acao).toBe('calar')
   })
 
   it('4. resposta p1:artha leva à p2 do ramo Artha', () => {
@@ -245,17 +249,11 @@ describe('proximoPasso', () => {
     expect(passo.acao).toBe('calar')
   })
 
-  // Quick reply de template chega como `type: 'button'` com `button.payload`
-  // no `button_id` (ver `idDoBotao` em webhookParse). O id é do template, não
-  // do roteiro — e vir ANTES da p1 não pode contar como roteiro encerrado.
+  // O id do template vir ANTES da p1 não pode contar como roteiro encerrado.
   it('24. id de template no primeiro inbound pergunta a p1 e o roteiro segue', () => {
-    const doTemplate = entrada({
-      message_type: 'button',
-      content: 'Quero voltar',
-      button_id: 'quero_voltar',
-    })
-    expect(proximoPasso([doTemplate])).toEqual({ acao: 'perguntar', pergunta: P1 })
-    expect(proximoPasso([doTemplate, doBot(), botao('p1:artha')])).toEqual({
+    const template = doTemplate()
+    expect(proximoPasso([template])).toEqual({ acao: 'perguntar', pergunta: P1 })
+    expect(proximoPasso([template, doBot(), botao('p1:artha')])).toEqual({
       acao: 'perguntar',
       pergunta: P2_POR_RAMO['p1:artha'],
     })
@@ -263,16 +261,12 @@ describe('proximoPasso', () => {
 
   it('25. quem responde a um disparo tocando o botão do template é qualificado', () => {
     const camp = disparo()
-    const doTemplate = entrada({
-      message_type: 'button',
-      content: 'Quero voltar',
-      button_id: 'quero_voltar',
-    })
-    expect(proximoPasso([camp, doTemplate])).toEqual({ acao: 'perguntar', pergunta: P1 })
+    const template = doTemplate()
+    expect(proximoPasso([camp, template])).toEqual({ acao: 'perguntar', pergunta: P1 })
 
     const passo = proximoPasso([
       camp,
-      doTemplate,
+      template,
       doBot(),
       botao('p1:dhana'),
       doBot(),
@@ -284,5 +278,27 @@ describe('proximoPasso', () => {
       idP2: 'p2:ate20',
       comFecho: true,
     })
+  })
+
+  // Os quatro seguintes fixam a definição de "conversa anterior": o que separa
+  // é ter havido uma SAÍDA no meio, não a quantidade de mensagens do lead.
+  it('26. mensagem dupla na mesma chegada ainda é primeiro contato', () => {
+    const passo = proximoPasso([entrada({ content: 'oi' }), entrada({ content: 'tudo bem?' })])
+    expect(passo).toEqual({ acao: 'perguntar', pergunta: P1 })
+  })
+
+  it('27. quem toca o botão do template e ainda escreve continua sendo primeiro contato', () => {
+    const passo = proximoPasso([disparo(), doTemplate(), entrada({ content: 'quero saber mais' })])
+    expect(passo).toEqual({ acao: 'perguntar', pergunta: P1 })
+  })
+
+  it('28. quem escreveu antes do disparo e voltou depois dele não vê o bot', () => {
+    const passo = proximoPasso([entrada({ content: 'oi' }), disparo(), entrada({ content: 'voltei' })])
+    expect(passo.acao).toBe('calar')
+  })
+
+  it('29. quem já tinha respondido a um disparo anterior não vê o bot', () => {
+    const passo = proximoPasso([disparo(), doTemplate(), disparo(), doTemplate()])
+    expect(passo.acao).toBe('calar')
   })
 })

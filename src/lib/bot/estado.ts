@@ -95,13 +95,25 @@ export function proximoPasso(mensagens: MensagemBot[]): Passo {
   const ultima = ms[ms.length - 1]
   if (ultima.direction !== 'inbound') return CALAR
 
-  // O bot ainda não falou: é aqui que o gatilho de primeiro contato mora. Mais
-  // de um inbound significa que essa pessoa já escreveu antes, e quem já
-  // escreveu não vê o bot. Depois que o bot fala, o roteiro continua — a
-  // resposta ao botão também chega como inbound.
+  // O bot ainda não falou: é aqui que o gatilho de primeiro contato mora. A
+  // regra do produto continua sendo "quem já conversou antes não vê o bot" — o
+  // que precisa de definição é ANTES. Uma mensagem só é anterior se veio antes
+  // de alguma coisa ter SAÍDO daqui: enquanto o histórico é só de entradas, não
+  // existe antes, porque ninguém nunca respondeu e tudo o que a pessoa escreveu
+  // é a mesma chegada.
+  //
+  // Contar inbounds era o proxy errado para essa pergunta. Mandar "oi" e
+  // emendar a pergunta na mensagem seguinte é dos comportamentos mais comuns no
+  // WhatsApp, e as duas chegam antes de a saída do bot ser gravada — pela
+  // contagem, a segunda virava prova de conversa anterior e o bot calava. Ele
+  // simplesmente nunca falava com a pessoa, sem deixar rastro.
+  //
+  // Depois que o bot fala, o roteiro continua — a resposta ao botão também
+  // chega como inbound.
   if (!ms.some(ehDoBot)) {
-    const entradas = ms.filter((m) => m.direction === 'inbound').length
-    return entradas > 1 ? CALAR : { acao: 'perguntar', pergunta: P1 }
+    const ultimaSaida = ms.reduce<number>((acc, m, i) => (m.direction === 'outbound' ? i : acc), -1)
+    const jaEscreveuAntes = ms.some((m, i) => i < ultimaSaida && m.direction === 'inbound')
+    return jaEscreveuAntes ? CALAR : { acao: 'perguntar', pergunta: P1 }
   }
 
   // O roteiro já acabou antes desta mensagem: o bot não fala mais. Sem isto, o
