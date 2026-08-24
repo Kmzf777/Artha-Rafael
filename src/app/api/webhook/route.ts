@@ -4,6 +4,7 @@
 // duplicata — por isso a idempotência por wamid.
 import { after, NextResponse } from 'next/server'
 import { parseWebhook } from '@/lib/webhookParse'
+import { executarBot } from '@/server/bot/executar'
 import { env } from '@/server/env'
 import { assinaturaConfere } from '@/server/meta/assinatura'
 import { acharOuCriarLeadPorTelefone } from '@/server/repo/leads'
@@ -99,6 +100,20 @@ async function processar(payload: unknown): Promise<void> {
     if (lead) {
       await db().from('leads')
         .update({ ultima_interacao_em: m.created_at }).eq('id', lead.id)
+    }
+
+    // Bot de qualificação. Isolado no seu próprio try/catch: uma falha aqui não
+    // pode impedir a marcação do evento como processado nem derrubar o
+    // tratamento das outras mensagens do mesmo payload.
+    try {
+      await executarBot({
+        messageId: m.message_id,
+        phone: m.phone,
+        phoneId: m.phone_id,
+        leadId: lead?.id ?? null,
+      })
+    } catch (e) {
+      console.error('[bot] falha ao executar', m.message_id, e)
     }
   }
 
