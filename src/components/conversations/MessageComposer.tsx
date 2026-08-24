@@ -126,7 +126,7 @@ export default function MessageComposer({
             <TimerOff aria-hidden />
             <AlertDescription>
               Janela de 24h fechada. Texto livre não sai para este contato — o próximo contato
-              precisa ser um template aprovado, pela tela de Disparos.
+              precisa ser um template aprovado.
             </AlertDescription>
           </Alert>
         ) : (
