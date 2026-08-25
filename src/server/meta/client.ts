@@ -1,6 +1,7 @@
 // src/server/meta/client.ts
 // Cliente da WhatsApp Cloud API. Único lugar que fala com graph.facebook.com.
 import 'server-only'
+import { toBrazilPhone } from '@/lib/phoneUtils'
 import { env } from '../env'
 import type { ComponenteEnvio } from '@/lib/templates'
 
@@ -77,13 +78,31 @@ async function chamar(caminho: string, init?: RequestInit): Promise<unknown> {
 
 type RespostaEnvio = { messages: { id: string }[]; contacts: { wa_id: string }[] }
 
+/**
+ * Destino no formato que a Meta consegue entregar.
+ *
+ * A forma canônica de 11 dígitos que circula na base — a que casa webhook, card
+ * e fila — NÃO é destino válido. E a falha é silenciosa: a Graph aceita o envio,
+ * devolve wamid, e só depois o callback de status volta com 131026 "Message
+ * undeliverable". Nada estoura, nada aparece no log, e a mensagem simplesmente
+ * não chega.
+ *
+ * A conversão vive AQUI, no único ponto do sistema que fala com a Graph, e não
+ * em cada chamador. Foi exatamente assim que o bug apareceu: dos três
+ * remetentes, dois lembravam de converter e o terceiro não. `toBrazilPhone` é
+ * idempotente para quem já vem com DDI, então chamar duas vezes é inofensivo.
+ */
+function destino(para: string): string {
+  return toBrazilPhone(para)
+}
+
 /** Texto livre. Só vale dentro da janela de 24h — quem checa é o chamador. */
 export async function enviarTexto(para: string, texto: string): Promise<RespostaEnvio> {
   return (await chamar(`${env.phoneNumberId}/messages`, {
     method: 'POST',
     body: JSON.stringify({
       messaging_product: 'whatsapp',
-      to: para,
+      to: destino(para),
       type: 'text',
       text: { preview_url: false, body: texto },
     }),
@@ -116,7 +135,7 @@ export async function enviarBotoes(
     method: 'POST',
     body: JSON.stringify({
       messaging_product: 'whatsapp',
-      to: para,
+      to: destino(para),
       type: 'interactive',
       interactive: {
         type: 'button',
@@ -145,7 +164,7 @@ export async function enviarTemplate(
 
   return (await chamar(`${env.phoneNumberId}/messages`, {
     method: 'POST',
-    body: JSON.stringify({ messaging_product: 'whatsapp', to: para, type: 'template', template }),
+    body: JSON.stringify({ messaging_product: 'whatsapp', to: destino(para), type: 'template', template }),
   })) as RespostaEnvio
 }
 
