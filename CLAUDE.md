@@ -52,7 +52,7 @@ Três produtos do cliente, que aparecem como segmento de lead no sistema:
 
 | Produto | Público | Nota |
 | --- | --- | --- |
-| **Artha** | B2C, pessoa física | Open Finance. R$97/mês ou R$997/ano |
+| **Artha** | B2C, pessoa física | Open Finance. Mensal R$197 no 1º mês (adesão de R$100) e R$97 depois; anual R$997 sem adesão |
 | **Dhana** | B2B | White-label para planejadores financeiros |
 | **LucIA** | B2B | IA operacional para escritórios de planejamento |
 
