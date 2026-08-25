@@ -31,8 +31,13 @@ export type Pergunta = {
    * O mesmo texto sem a saudação, usado quando o bot repete a pergunta porque a
    * pessoa escreveu em vez de apertar. Sem isto o menu 1 dá um segundo "Oi!" na
    * mesma conversa, que é o que faz a URA parecer quebrada. Spec §4.4.
+   *
+   * OBRIGATÓRIO de propósito. Era opcional, e opcional queria dizer que uma
+   * pergunta nova entrar no roteiro sem ele trazia a saudação repetida de volta
+   * em silêncio. Quando o corpo não tem saudação, repetir o mesmo texto aqui é
+   * uma linha de ruído; a alternativa é a regressão voltar sem ninguém ver.
    */
-  corpoRepetido?: string
+  corpoRepetido: string
   botoes: Botao[]
 }
 
@@ -105,7 +110,7 @@ export const RESPOSTA_POR_ID: Record<string, string> = {
  * para que esquecer de escrever uma resposta seja um teste vermelho em vez de
  * um encaminhamento silencioso.
  */
-export const ENCAMINHA = new Set(['p1:outro', 'p2:dhana_demo', 'p2:humano'])
+export const IDS_QUE_ENCAMINHAM = new Set(['p1:outro', 'p2:dhana_demo', 'p2:humano'])
 
 export const FECHO =
   'Perfeito, obrigado! Já passei para a equipe da Artha, e em instantes alguém te responde por aqui.'

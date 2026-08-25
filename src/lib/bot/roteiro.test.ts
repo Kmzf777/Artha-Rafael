@@ -10,7 +10,7 @@ import {
   SEGMENTO_POR_P1,
   TAG_POR_RESPOSTA,
   RESPOSTA_POR_ID,
-  ENCAMINHA,
+  IDS_QUE_ENCAMINHAM,
   FECHO,
   REPETICAO,
   mensagemTerminal,
@@ -91,20 +91,20 @@ describe('saída terminal', () => {
     expect(TERMINAIS.length).toBeGreaterThan(0)
     for (const id of TERMINAIS) {
       const responde = id in RESPOSTA_POR_ID
-      const encaminha = ENCAMINHA.has(id)
+      const encaminha = IDS_QUE_ENCAMINHAM.has(id)
       expect(responde || encaminha, `${id} não responde nem encaminha`).toBe(true)
     }
   })
 
   it('nenhum id responde e encaminha ao mesmo tempo', () => {
     for (const id of Object.keys(RESPOSTA_POR_ID)) {
-      expect(ENCAMINHA.has(id), `${id} está em RESPOSTA_POR_ID e em ENCAMINHA`).toBe(false)
+      expect(IDS_QUE_ENCAMINHAM.has(id), `${id} está em RESPOSTA_POR_ID e em IDS_QUE_ENCAMINHAM`).toBe(false)
     }
   })
 
-  it('RESPOSTA_POR_ID e ENCAMINHA só falam de ids terminais', () => {
+  it('RESPOSTA_POR_ID e IDS_QUE_ENCAMINHAM só falam de ids terminais', () => {
     const terminais = new Set(TERMINAIS)
-    for (const id of [...Object.keys(RESPOSTA_POR_ID), ...ENCAMINHA]) {
+    for (const id of [...Object.keys(RESPOSTA_POR_ID), ...IDS_QUE_ENCAMINHAM]) {
       expect(terminais.has(id), `${id} não é um terminal da árvore`).toBe(true)
     }
   })
