@@ -1,9 +1,20 @@
 // src/server/bot/executar.ts
 // O efeito colateral do bot. Toda decisão está em `src/lib/bot/estado.ts`; aqui
-// só existe ordem de operações. Spec 2026-08-24 §3.6 e §4.2.
+// só existe ordem de operações.
+//
+// DUAS SPECS governam este arquivo, e as duas têm §4.3 e §4.4 falando de coisas
+// diferentes. Toda citação daqui para baixo leva a data junto, de propósito.
+//   · 2026-08-24 §3.6 e §4.2 — a trava de concorrência e o ponto de entrada.
+//   · 2026-08-25 §4.3 e §4.4 — a escolha da resposta e o corpo da repetição.
 import 'server-only'
 import { proximoPasso } from '@/lib/bot/estado'
-import { AUTOR_BOT, FECHO, REPETICAO, SEGMENTO_POR_P1, TAG_POR_RESPOSTA } from '@/lib/bot/roteiro'
+import {
+  AUTOR_BOT,
+  mensagemTerminal,
+  REPETICAO,
+  SEGMENTO_POR_P1,
+  TAG_POR_RESPOSTA,
+} from '@/lib/bot/roteiro'
 import { getWindowStatus } from '@/lib/janela24h'
 import type { Segmento } from '@/mock/types'
 import { enviarBotoes, enviarTexto } from '../meta/client'
@@ -46,14 +57,19 @@ export async function executarBot(gatilho: Gatilho): Promise<void> {
   if (!(await tomarATrava(gatilho.messageId))) return
 
   if (passo.acao === 'perguntar' || passo.acao === 'repetir') {
+    // Na repetição vai o corpo sem saudação. O menu 1 abre com "Oi! Aqui é da
+    // Artha" e repetir isso dá um segundo olá na mesma conversa.
+    // Spec 2026-08-25 §4.4.
     const corpo =
-      passo.acao === 'repetir' ? `${REPETICAO}\n\n${passo.pergunta.corpo}` : passo.pergunta.corpo
+      passo.acao === 'repetir'
+        ? `${REPETICAO}\n\n${passo.pergunta.corpoRepetido}`
+        : passo.pergunta.corpo
     const resposta = await enviarBotoes(gatilho.phone, corpo, passo.pergunta.botoes)
     await gravarSaida(gatilho, resposta.messages[0]?.id ?? null, corpo, 'interactive')
     return
   }
 
-  // encerrar. A qualificação vem ANTES do fecho de propósito: o fecho é
+  // encerrar. A qualificação vem ANTES da resposta de propósito: a resposta é
   // cortesia, a qualificação é o produto inteiro do bot. A trava de `bot_acoes`
   // já foi queimada acima e não há reprocessamento — se um erro da Meta deixar
   // só um dos dois acontecer, tem que ser a qualificação que sobrevive. Não
@@ -74,8 +90,12 @@ export async function executarBot(gatilho: Gatilho): Promise<void> {
   }
 
   if (passo.comFecho) {
-    const resposta = await enviarTexto(gatilho.phone, FECHO)
-    await gravarSaida(gatilho, resposta.messages[0]?.id ?? null, FECHO, 'text')
+    // A resposta é escolhida pelo id que encerrou o roteiro, não é mais uma
+    // constante. Quem apertou "Preços" recebe preço; quem pediu gente recebe o
+    // fecho. Spec 2026-08-25 §4.3.
+    const texto = mensagemTerminal(passo.idP1, passo.idP2)
+    const resposta = await enviarTexto(gatilho.phone, texto)
+    await gravarSaida(gatilho, resposta.messages[0]?.id ?? null, texto, 'text')
   }
 }
 

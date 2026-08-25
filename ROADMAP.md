@@ -146,6 +146,35 @@ Bloqueio que continua: o teste ponta a ponta depende do número WABA, que a
 reunião deixou pendente no chip novo. E `BOT_QUALIFICACAO` precisa valer `on` na
 Vercel — o padrão é desligado de propósito.
 
+## Concluído (2026-08-25) — URA de respostas
+
+O bot deixou de ser formulário de triagem. Os sete finais do roteiro caíam todos
+na mesma frase de espera: aperta X, sai "aguarde um humano". Agora cada id
+terminal entrega texto próprio. Spec:
+`docs/superpowers/specs/2026-08-25-ura-de-respostas-design.md`.
+
+O nível 2 trocou de propósito. Era "Você já usou a Artha?" e "Quantos clientes
+você atende?", perguntas que serviam à operação; passou a ser "O que você quer
+saber?", que serve a quem apertou e qualifica igual. Quem aperta "Quero começar"
+vale mais que quem responde "já testei".
+
+`src/lib/bot/estado.ts` não foi tocado: o motor já devolvia os ids terminais e
+nunca decidiu texto. A mudança inteira é dado em `roteiro.ts` mais duas linhas
+em `executar.ts`.
+
+**Dívida que nasce aqui:** o bot passou a afirmar preço. A fonte é
+`https://artha.ia.br`, lida em 2026-08-25, e `RESPOSTA_POR_ID['p2:artha_preco']`
+é uma string literal. Nada liga as duas pontas, então quando o preço mudar no
+site alguém tem de trocar a string à mão. O `CLAUDE.md` foi corrigido junto: ele
+dizia "R$97/mês" e omitia a taxa de adesão de R$100.
+
+**Ainda em aberto:** Dhana não tem preço público em lugar nenhum, então o ramo do
+planejador não tem botão de preço e quem pergunta chega em gente.
+
+**Contagem de testes:** este ROADMAP ainda diz "205 passando e 14 pulados" na
+seção de 2026-08-20. Aquele número é de antes do banco estar configurado e de
+antes do bot de qualificação existir. Hoje `npm test` dá 291 passando e 1 pulado.
+
 ## [NA FILA]
 
 - **B5 — base real e autenticação.** Depende do CSV dos 612 inativos, ainda

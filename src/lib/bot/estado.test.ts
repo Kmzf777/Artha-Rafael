@@ -97,12 +97,12 @@ describe('proximoPasso', () => {
       doBot(),
       botao('p1:artha'),
       doBot(),
-      botao('p2:testou'),
+      botao('p2:artha_preco'),
     ])
     expect(passo).toEqual({
       acao: 'encerrar',
       idP1: 'p1:artha',
-      idP2: 'p2:testou',
+      idP2: 'p2:artha_preco',
       comFecho: true,
     })
   })
@@ -161,7 +161,7 @@ describe('proximoPasso', () => {
       doBot(),
       botao('p1:artha'),
       doBot(),
-      botao('p2:testou'),
+      botao('p2:artha_preco'),
       doBot(),
     ])
     expect(passo.acao).toBe('calar')
@@ -187,7 +187,7 @@ describe('proximoPasso', () => {
       doBot(),
       botao('p1:artha'),
       doBot(),
-      botao('p2:testou'),
+      botao('p2:artha_preco'),
       doBot(),
       entrada({ content: 'obrigado!' }),
     ])
@@ -200,7 +200,7 @@ describe('proximoPasso', () => {
       doBot(),
       botao('p1:artha'),
       doBot(),
-      botao('p2:testou'),
+      botao('p2:artha_preco'),
       doBot(),
       botao('p1:dhana'),
     ])
@@ -270,12 +270,12 @@ describe('proximoPasso', () => {
       doBot(),
       botao('p1:dhana'),
       doBot(),
-      botao('p2:ate20'),
+      botao('p2:dhana_demo'),
     ])
     expect(passo).toEqual({
       acao: 'encerrar',
       idP1: 'p1:dhana',
-      idP2: 'p2:ate20',
+      idP2: 'p2:dhana_demo',
       comFecho: true,
     })
   })

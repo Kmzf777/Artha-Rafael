@@ -119,11 +119,17 @@ digitar nada.
 `p2:artha_preco`
 
 ```
-No plano mensal são R$197 no primeiro mês e R$97 por mês depois. Os R$100 da
-entrada são a taxa de adesão.
+No mensal o primeiro mês sai R$197. São R$97 do plano mais R$100 de adesão, que
+você paga uma vez só. Do segundo mês em diante são R$97.
 
-No anual são R$997 pagos de uma vez, sem adesão.
+No anual são R$997 pagos de uma vez, e não tem adesão.
 ```
+
+A primeira redação era "R$197 no primeiro mês e R$97 depois. Os R$100 da entrada
+são a taxa de adesão." Estava certa nos números e errada na leitura: chamava de
+"entrada" uma coisa que a frase anterior nunca tinha nomeado, e deixava o leitor
+fazer a subtração. Também não dizia que a adesão é cobrada uma vez, que é a
+primeira pergunta que essa mensagem gera no atendimento.
 
 `p2:artha_comecar`
 
@@ -138,10 +144,15 @@ Você conecta seus bancos por lá. Se travar em algum passo, é só escrever aqu
 `p2:dhana_como`
 
 ```
-A Dhana é a plataforma que você usa para acompanhar seus clientes. Cada um
-conecta as contas dele e você enxerga a carteira inteira num lugar só, sem pedir
-extrato para ninguém.
+A Dhana é a plataforma que você usa para acompanhar seus clientes.
+
+Cada um conecta as contas dele e você enxerga a carteira inteira num lugar só,
+sem pedir extrato para ninguém.
 ```
+
+A quebra de parágrafo não é enfeite. Toda resposta de duas frases quebra em duas
+bolhas, e esta era a única que chegava como bloco único ao lado da resposta
+irmã do ramo Artha, que tem a mesma forma.
 
 ### 3.5 Quem encaminha
 
@@ -184,7 +195,7 @@ O motor devolve `{ acao: 'encerrar', idP1, idP2, comFecho }` e não decide texto
 nenhum. Quem escolhe a mensagem é `executar.ts`, que hoje manda `FECHO` sempre.
 Entregar resposta por botão é trocar essa constante por uma consulta.
 
-Isso vale ser dito porque a tentação era o contrário. `proximoPasso` sustenta 29
+Isso vale ser dito porque a tentação era o contrário. `proximoPasso` sustenta 28
 testes e carrega as regras que o cliente comprou — operador que fala desliga o
 bot, reentrega da Meta não duplica, id desconhecido entrega em silêncio. Mexer
 nele para trocar copy seria refatoração de passagem no arquivo mais delicado do
@@ -194,7 +205,7 @@ projeto, e não há um caso em que seja preciso.
 
 | Arquivo | Mudança |
 | --- | --- |
-| `src/lib/bot/roteiro.ts` | árvore nova, `RESPOSTA_POR_ID`, `ENCAMINHA`, `mensagemTerminal`, `corpoRepetido`, tags |
+| `src/lib/bot/roteiro.ts` | árvore nova, `RESPOSTA_POR_ID`, `IDS_QUE_ENCAMINHAM`, `mensagemTerminal`, `corpoRepetido`, tags |
 | `src/server/bot/executar.ts` | duas linhas: a mensagem terminal e o corpo da repetição |
 | `src/lib/bot/roteiro.test.ts` | invariantes da §5.1 |
 | `src/lib/bot/estado.test.ts` | troca mecânica dos ids `p2:` nos fixtures |
@@ -234,10 +245,16 @@ repetição virava um segundo "Oi!" na mesma conversa, três mensagens depois da
 primeira. Isso já acontece hoje e é exatamente o tipo de coisa que faz a URA
 parecer quebrada.
 
-`Pergunta` ganha um campo opcional `corpoRepetido`, que é o mesmo texto sem a
-saudação. O executor usa `passo.pergunta.corpoRepetido ?? passo.pergunta.corpo`
-quando a ação é `repetir`. Continua sendo dado no roteiro, e uma linha no
-executor.
+`Pergunta` ganha um campo `corpoRepetido`, que é o mesmo texto sem a saudação. O
+executor usa `passo.pergunta.corpoRepetido` quando a ação é `repetir`. Continua
+sendo dado no roteiro, e uma linha no executor.
+
+**O campo é obrigatório, não opcional.** Nasceu opcional, com
+`corpoRepetido ?? corpo` no executor, e a revisão de qualidade apontou que
+opcional queria dizer que uma pergunta nova entrar no roteiro sem ele traria a
+saudação repetida de volta em silêncio, que é exatamente a regressão que o campo
+existe para matar. Obrigatório, o compilador cobra. Quando o corpo não tiver
+saudação, repetir o mesmo texto no campo é uma linha de ruído, e é o preço certo.
 
 | | primeira vez | na repetição |
 | --- | --- | --- |
@@ -269,8 +286,8 @@ Além dos testes que já existem e continuam valendo:
 1. **Todo id terminal ou responde, ou encaminha.** A lista de terminais é
    derivada da árvore, não escrita à mão: botão de p1 sem ramo em `P2_POR_RAMO`,
    mais todos os botões das p2. Cada um tem de estar em `RESPOSTA_POR_ID` ou em
-   `ENCAMINHA`.
-2. **`RESPOSTA_POR_ID` e `ENCAMINHA` são disjuntos.** Um id nos dois seria copy
+   `IDS_QUE_ENCAMINHAM`.
+2. **`RESPOSTA_POR_ID` e `IDS_QUE_ENCAMINHAM` são disjuntos.** Um id nos dois seria copy
    morta, e é o defeito que passa despercebido numa revisão de texto.
 3. **Nenhuma resposta passa de 4096 caracteres**, que é o teto de corpo de
    mensagem de texto da Cloud API. As perguntas continuam limitadas a 1024, que
@@ -278,7 +295,7 @@ Além dos testes que já existem e continuam valendo:
 4. **Nenhuma copy da árvore contém travessão nem meia-risca** (`—` U+2014, `–`
    U+2013). É a regra de escrita do gestor e é verificável. Vale para perguntas,
    respostas, fecho e repetição. Hífen comum não conta.
-5. **`RESPOSTA_POR_ID` e `ENCAMINHA` só falam de ids terminais.** Um id de menu
+5. **`RESPOSTA_POR_ID` e `IDS_QUE_ENCAMINHAM` só falam de ids terminais.** Um id de menu
    ou um id que não existe mais na árvore vira copy órfã que ninguém vê.
 6. **`mensagemTerminal` devolve a resposta do nível 2, cai no nível 1 quando não
    há nível 2, e devolve `FECHO` para quem encaminha e para id desconhecido.**
@@ -289,7 +306,7 @@ Além dos testes que já existem e continuam valendo:
 
 ### 5.2 `src/lib/bot/estado.test.ts`
 
-Os 29 testes passam com os ids novos. **Nenhuma asserção de comportamento
+Os 28 testes passam com os ids novos. **Nenhuma asserção de comportamento
 muda** — se algum teste precisar de lógica diferente para passar, o motor foi
 tocado sem querer e a mudança está errada.
 

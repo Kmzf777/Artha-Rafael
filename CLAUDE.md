@@ -46,22 +46,23 @@ Quando o trabalho é dividido entre subagentes, cada um edita **somente** os arq
 
 ### O que é
 
-Painel operacional de WhatsApp da **Artha** — planejamento e educação financeira. O produto de entrada é a **reativação da base inativa** (~612 usuários) por WhatsApp.
+Painel operacional de WhatsApp da **Artha** — planejamento e educação financeira. O eixo é **atendimento e qualificação** de quem escreve para o número. Não é reativação: não há base inativa carregada, e os 612 inativos que este arquivo prometia nunca foram entregues pelo cliente.
 
 Três produtos do cliente, que aparecem como segmento de lead no sistema:
 
 | Produto | Público | Nota |
 | --- | --- | --- |
-| **Artha** | B2C, pessoa física | Open Finance. R$97/mês ou R$997/ano |
+| **Artha** | B2C, pessoa física | Open Finance. Mensal R$197 no 1º mês (adesão de R$100) e R$97 depois; anual R$997 sem adesão |
 | **Dhana** | B2B | White-label para planejadores financeiros |
 | **LucIA** | B2B | IA operacional para escritórios de planejamento |
 
-### Fase atual: frontend de demonstração
+### Fase atual: backend real
 
-Telas navegáveis, dados fictícios, **nenhum backend**. Sem rota de API, sem Supabase, sem Meta Graph API, sem IA. O objetivo é mostrar o sistema funcionando antes de existirem número WABA, acesso à Business Manager e a base real.
+Supabase Postgres, WhatsApp Cloud API em produção (webhook com HMAC + envio), motor de disparo, e um bot de botões determinístico dentro do webhook. **Sem IA** — o roteiro é fixo e não há LLM no projeto; o agente de IA (B4) segue bloqueado esperando o JSON do n8n.
 
-- Spec: `docs/superpowers/specs/2026-08-17-artha-system-frontend-design.md`
-- Plano: `docs/superpowers/plans/2026-08-17-artha-system-frontend.md`
+**O `ROADMAP.md` é a fonte do estado corrente, não este arquivo.** Este aqui descreveu "frontend de demonstração, nenhum backend" por vários dias depois de o backend existir, e quem leu foi enganado. Antes de assumir uma fase, leia o ROADMAP.
+
+- Specs por onda: `docs/superpowers/specs/`
 
 ### Comandos essenciais
 
@@ -72,7 +73,7 @@ npm run lint     # ESLint
 npm test         # Vitest
 ```
 
-O projeto **não é um repositório git** nesta fase. Nenhum commit é feito.
+O projeto **é** um repositório git e recebe commits normalmente. A instrução contrária que morava aqui valia só para a fase de demonstração.
 
 ### Stack
 
