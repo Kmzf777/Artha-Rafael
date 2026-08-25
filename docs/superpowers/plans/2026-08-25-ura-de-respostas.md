@@ -17,7 +17,7 @@
 O bot vive dentro do webhook do WhatsApp. Três arquivos importam:
 
 - `src/lib/bot/roteiro.ts` — o roteiro como **dado**. Perguntas, botões, ids, tags. Nenhuma decisão.
-- `src/lib/bot/estado.ts` — `proximoPasso(mensagens)`, função **pura** do histórico. Devolve `{ acao: 'perguntar' | 'repetir' | 'encerrar' | 'calar', ... }`. **Não mexa neste arquivo.** Ele sustenta 29 testes e carrega as regras que o cliente comprou.
+- `src/lib/bot/estado.ts` — `proximoPasso(mensagens)`, função **pura** do histórico. Devolve `{ acao: 'perguntar' | 'repetir' | 'encerrar' | 'calar', ... }`. **Não mexa neste arquivo.** Ele sustenta 28 testes e carrega as regras que o cliente comprou.
 - `src/server/bot/executar.ts` — os efeitos colaterais. Trava de concorrência, checagem de janela de 24h, envio, gravação.
 
 **A regra de ouro do projeto:** os ids são o contrato, os títulos são copy. Nunca roteie por título.
@@ -32,7 +32,7 @@ npm run lint             # ESLint
 npm run build            # build de produção
 ```
 
-`npm test` hoje dá **205 passando e 14 pulados**. Os 14 pulados são testes de paridade `tel_norm11` que esperam banco configurado — eles continuam pulados e isso é o esperado, não uma regressão.
+`npm test` hoje dá **291 passando e 1 pulado**. O pulado é um caso de paridade `tel_norm11`. O ROADMAP ainda diz "205 passando e 14 pulados", número de 20/08, de quando o banco não estava configurado e o bot de qualificação não existia.
 
 ---
 
@@ -40,7 +40,7 @@ npm run build            # build de produção
 
 | Arquivo | Responsabilidade depois desta mudança |
 | --- | --- |
-| `src/lib/bot/roteiro.ts` | reescrito — árvore, respostas, `ENCAMINHA`, `mensagemTerminal` |
+| `src/lib/bot/roteiro.ts` | reescrito — árvore, respostas, `IDS_QUE_ENCAMINHAM`, `mensagemTerminal` |
 | `src/lib/bot/roteiro.test.ts` | invariantes da árvore e da copy |
 | `src/lib/bot/estado.test.ts` | só os ids dos fixtures mudam; zero asserção de comportamento |
 | `src/server/bot/executar.ts` | duas linhas |
@@ -74,7 +74,7 @@ import {
   SEGMENTO_POR_P1,
   TAG_POR_RESPOSTA,
   RESPOSTA_POR_ID,
-  ENCAMINHA,
+  IDS_QUE_ENCAMINHAM,
   FECHO,
   REPETICAO,
   mensagemTerminal,
@@ -155,20 +155,20 @@ describe('saída terminal', () => {
     expect(TERMINAIS.length).toBeGreaterThan(0)
     for (const id of TERMINAIS) {
       const responde = id in RESPOSTA_POR_ID
-      const encaminha = ENCAMINHA.has(id)
+      const encaminha = IDS_QUE_ENCAMINHAM.has(id)
       expect(responde || encaminha, `${id} não responde nem encaminha`).toBe(true)
     }
   })
 
   it('nenhum id responde e encaminha ao mesmo tempo', () => {
     for (const id of Object.keys(RESPOSTA_POR_ID)) {
-      expect(ENCAMINHA.has(id), `${id} está em RESPOSTA_POR_ID e em ENCAMINHA`).toBe(false)
+      expect(IDS_QUE_ENCAMINHAM.has(id), `${id} está em RESPOSTA_POR_ID e em IDS_QUE_ENCAMINHAM`).toBe(false)
     }
   })
 
-  it('RESPOSTA_POR_ID e ENCAMINHA só falam de ids terminais', () => {
+  it('RESPOSTA_POR_ID e IDS_QUE_ENCAMINHAM só falam de ids terminais', () => {
     const terminais = new Set(TERMINAIS)
-    for (const id of [...Object.keys(RESPOSTA_POR_ID), ...ENCAMINHA]) {
+    for (const id of [...Object.keys(RESPOSTA_POR_ID), ...IDS_QUE_ENCAMINHAM]) {
       expect(terminais.has(id), `${id} não é um terminal da árvore`).toBe(true)
     }
   })
@@ -231,7 +231,7 @@ describe('regras de escrita', () => {
 
 Run: `npx vitest run src/lib/bot/roteiro.test.ts`
 
-Expected: FAIL. O erro é de import — `MAX_CORPO_INTERATIVO`, `MAX_CORPO_TEXTO`, `RESPOSTA_POR_ID`, `ENCAMINHA` e `mensagemTerminal` ainda não existem em `roteiro.ts`.
+Expected: FAIL. O erro é de import — `MAX_CORPO_INTERATIVO`, `MAX_CORPO_TEXTO`, `RESPOSTA_POR_ID`, `IDS_QUE_ENCAMINHAM` e `mensagemTerminal` ainda não existem em `roteiro.ts`.
 
 Se falhar por outro motivo, pare e leia o erro. Não siga.
 
@@ -362,7 +362,7 @@ export const RESPOSTA_POR_ID: Record<string, string> = {
  * para que esquecer de escrever uma resposta seja um teste vermelho em vez de
  * um encaminhamento silencioso.
  */
-export const ENCAMINHA = new Set(['p1:outro', 'p2:dhana_demo', 'p2:humano'])
+export const IDS_QUE_ENCAMINHAM = new Set(['p1:outro', 'p2:dhana_demo', 'p2:humano'])
 
 export const FECHO =
   'Perfeito, obrigado! Já passei para a equipe da Artha, e em instantes alguém te responde por aqui.'
@@ -453,7 +453,7 @@ pegou menos linhas do que devia e falta id.
 - [ ] **Step 5: Rodar a suíte inteira**
 
 Run: `npm test`
-Expected: **205 passando, 14 pulados.** Os 14 pulados são paridade `tel_norm11` esperando banco, e continuam pulados.
+Expected: **291 passando, 1 pulado.** O pulado é paridade `tel_norm11`.
 
 - [ ] **Step 6: Commit**
 
@@ -505,12 +505,11 @@ Substitua por:
 
 ```ts
   if (passo.acao === 'perguntar' || passo.acao === 'repetir') {
-    // Na repetição vai o corpo sem saudação, quando o roteiro oferecer um: o
-    // menu 1 abre com "Oi! Aqui é da Artha" e repetir isso dá um segundo olá na
-    // mesma conversa. Spec §4.4.
+    // Na repetição vai o corpo sem saudação. O menu 1 abre com "Oi! Aqui é da
+    // Artha" e repetir isso dá um segundo olá na mesma conversa. Spec §4.4.
     const corpo =
       passo.acao === 'repetir'
-        ? `${REPETICAO}\n\n${passo.pergunta.corpoRepetido ?? passo.pergunta.corpo}`
+        ? `${REPETICAO}\n\n${passo.pergunta.corpoRepetido}`
         : passo.pergunta.corpo
 ```
 
@@ -564,7 +563,7 @@ Run: `npx tsc --noEmit`
 Expected: sem saída, código 0.
 
 Run: `npm test`
-Expected: 205 passando, 14 pulados.
+Expected: 291 passando, 1 pulado.
 
 - [ ] **Step 6: Commit**
 
@@ -656,7 +655,7 @@ Expected: sem saída, código 0.
 - [ ] **Step 3: Testes**
 
 Run: `npm test`
-Expected: **205 passando, 14 pulados.** Se o número de passando subiu, foram os testes novos do roteiro e está certo — reporte o número real. Se algum dos 29 de `estado.test.ts` falhou, o motor foi tocado e a mudança está errada.
+Expected: **291 passando, 1 pulado.** Se o número de passando subiu, foram os testes novos do roteiro e está certo — reporte o número real. Se algum dos 28 de `estado.test.ts` falhou, o motor foi tocado e a mudança está errada.
 
 - [ ] **Step 4: Build**
 

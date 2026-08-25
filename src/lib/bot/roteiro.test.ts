@@ -46,9 +46,7 @@ describe('limites da Cloud API', () => {
   it('nenhum corpo de pergunta passa do teto interativo', () => {
     for (const p of TODAS) {
       expect(p.corpo.length).toBeLessThanOrEqual(MAX_CORPO_INTERATIVO)
-      if (p.corpoRepetido) {
-        expect(p.corpoRepetido.length).toBeLessThanOrEqual(MAX_CORPO_INTERATIVO)
-      }
+      expect(p.corpoRepetido.length).toBeLessThanOrEqual(MAX_CORPO_INTERATIVO)
     }
   })
 })
@@ -144,7 +142,7 @@ describe('mensagemTerminal', () => {
 describe('regras de escrita', () => {
   it('nenhuma copy usa travessão ou meia-risca', () => {
     const copy = [
-      ...TODAS.flatMap((p) => [p.corpo, p.corpoRepetido ?? '']),
+      ...TODAS.flatMap((p) => [p.corpo, p.corpoRepetido]),
       ...TODAS.flatMap((p) => p.botoes.map((b) => b.titulo)),
       ...Object.values(RESPOSTA_POR_ID),
       FECHO,
