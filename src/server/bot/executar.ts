@@ -1,6 +1,11 @@
 // src/server/bot/executar.ts
 // O efeito colateral do bot. Toda decisão está em `src/lib/bot/estado.ts`; aqui
-// só existe ordem de operações. Spec 2026-08-24 §3.6 e §4.2.
+// só existe ordem de operações.
+//
+// DUAS SPECS governam este arquivo, e as duas têm §4.3 e §4.4 falando de coisas
+// diferentes. Toda citação daqui para baixo leva a data junto, de propósito.
+//   · 2026-08-24 §3.6 e §4.2 — a trava de concorrência e o ponto de entrada.
+//   · 2026-08-25 §4.3 e §4.4 — a escolha da resposta e o corpo da repetição.
 import 'server-only'
 import { proximoPasso } from '@/lib/bot/estado'
 import {
@@ -53,7 +58,8 @@ export async function executarBot(gatilho: Gatilho): Promise<void> {
 
   if (passo.acao === 'perguntar' || passo.acao === 'repetir') {
     // Na repetição vai o corpo sem saudação. O menu 1 abre com "Oi! Aqui é da
-    // Artha" e repetir isso dá um segundo olá na mesma conversa. Spec §4.4.
+    // Artha" e repetir isso dá um segundo olá na mesma conversa.
+    // Spec 2026-08-25 §4.4.
     const corpo =
       passo.acao === 'repetir'
         ? `${REPETICAO}\n\n${passo.pergunta.corpoRepetido}`
@@ -86,7 +92,7 @@ export async function executarBot(gatilho: Gatilho): Promise<void> {
   if (passo.comFecho) {
     // A resposta é escolhida pelo id que encerrou o roteiro, não é mais uma
     // constante. Quem apertou "Preços" recebe preço; quem pediu gente recebe o
-    // fecho. Spec §4.3.
+    // fecho. Spec 2026-08-25 §4.3.
     const texto = mensagemTerminal(passo.idP1, passo.idP2)
     const resposta = await enviarTexto(gatilho.phone, texto)
     await gravarSaida(gatilho, resposta.messages[0]?.id ?? null, texto, 'text')
