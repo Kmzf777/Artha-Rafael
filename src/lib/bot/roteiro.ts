@@ -90,8 +90,8 @@ export const RESPOSTA_POR_ID: Record<string, string> = {
     'Suas contas de várias instituições ficam num lugar só, sem planilha e sem digitar nada.',
 
   'p2:artha_preco':
-    'No plano mensal são R$197 no primeiro mês e R$97 por mês depois. Os R$100 da entrada são a taxa de adesão.\n\n' +
-    'No anual são R$997 pagos de uma vez, sem adesão.',
+    'No mensal o primeiro mês sai R$197. São R$97 do plano mais R$100 de adesão, que você paga uma vez só. Do segundo mês em diante são R$97.\n\n' +
+    'No anual são R$997 pagos de uma vez, e não tem adesão.',
 
   'p2:artha_comecar':
     'Ótimo. É por aqui.\n\n' +
@@ -99,7 +99,7 @@ export const RESPOSTA_POR_ID: Record<string, string> = {
     'Você conecta seus bancos por lá. Se travar em algum passo, é só escrever aqui.',
 
   'p2:dhana_como':
-    'A Dhana é a plataforma que você usa para acompanhar seus clientes. ' +
+    'A Dhana é a plataforma que você usa para acompanhar seus clientes.\n\n' +
     'Cada um conecta as contas dele e você enxerga a carteira inteira num lugar só, sem pedir extrato para ninguém.',
 }
 

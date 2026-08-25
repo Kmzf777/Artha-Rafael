@@ -119,11 +119,17 @@ digitar nada.
 `p2:artha_preco`
 
 ```
-No plano mensal são R$197 no primeiro mês e R$97 por mês depois. Os R$100 da
-entrada são a taxa de adesão.
+No mensal o primeiro mês sai R$197. São R$97 do plano mais R$100 de adesão, que
+você paga uma vez só. Do segundo mês em diante são R$97.
 
-No anual são R$997 pagos de uma vez, sem adesão.
+No anual são R$997 pagos de uma vez, e não tem adesão.
 ```
+
+A primeira redação era "R$197 no primeiro mês e R$97 depois. Os R$100 da entrada
+são a taxa de adesão." Estava certa nos números e errada na leitura: chamava de
+"entrada" uma coisa que a frase anterior nunca tinha nomeado, e deixava o leitor
+fazer a subtração. Também não dizia que a adesão é cobrada uma vez, que é a
+primeira pergunta que essa mensagem gera no atendimento.
 
 `p2:artha_comecar`
 
@@ -138,10 +144,15 @@ Você conecta seus bancos por lá. Se travar em algum passo, é só escrever aqu
 `p2:dhana_como`
 
 ```
-A Dhana é a plataforma que você usa para acompanhar seus clientes. Cada um
-conecta as contas dele e você enxerga a carteira inteira num lugar só, sem pedir
-extrato para ninguém.
+A Dhana é a plataforma que você usa para acompanhar seus clientes.
+
+Cada um conecta as contas dele e você enxerga a carteira inteira num lugar só,
+sem pedir extrato para ninguém.
 ```
+
+A quebra de parágrafo não é enfeite. Toda resposta de duas frases quebra em duas
+bolhas, e esta era a única que chegava como bloco único ao lado da resposta
+irmã do ramo Artha, que tem a mesma forma.
 
 ### 3.5 Quem encaminha
 

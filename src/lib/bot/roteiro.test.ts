@@ -117,6 +117,17 @@ describe('saída terminal', () => {
     }
     expect(FECHO.length).toBeLessThanOrEqual(MAX_CORPO_TEXTO)
   })
+
+  // A chave existir não basta. `mensagemTerminal` só cai no FECHO quando o valor
+  // é `undefined`, então uma string vazia atravessa a checagem de cobertura, sai
+  // pela Cloud API e chega no WhatsApp como mensagem em branco. É a mesma falha
+  // que `mensagemTerminal` existe para impedir, alcançada por outro lado.
+  it('nenhuma resposta é vazia', () => {
+    for (const [id, texto] of Object.entries(RESPOSTA_POR_ID)) {
+      expect(texto.trim().length, `${id} tem resposta vazia`).toBeGreaterThan(0)
+    }
+    expect(FECHO.trim().length).toBeGreaterThan(0)
+  })
 })
 
 describe('mensagemTerminal', () => {
