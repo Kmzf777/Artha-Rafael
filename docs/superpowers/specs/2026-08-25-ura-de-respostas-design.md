@@ -59,7 +59,7 @@ sozinho na linha. São as regras de escrita que o gestor passou nesta sessão.
 ### 3.1 Menu 1
 
 ```
-Oi! Aqui é da Artha. Me diz o que você procura e eu já te respondo.
+Oi! Aqui é da Artha. Me diz o que você procura.
 ```
 
 | id | título | destino |
@@ -194,34 +194,57 @@ projeto, e não há um caso em que seja preciso.
 
 | Arquivo | Mudança |
 | --- | --- |
-| `src/lib/bot/roteiro.ts` | árvore nova, `RESPOSTA_POR_ID`, `ENCAMINHA`, tags |
-| `src/server/bot/executar.ts` | escolhe a resposta pelo id terminal |
-| `src/lib/bot/roteiro.test.ts` | invariante novo da §5.1 |
+| `src/lib/bot/roteiro.ts` | árvore nova, `RESPOSTA_POR_ID`, `ENCAMINHA`, `mensagemTerminal`, `corpoRepetido`, tags |
+| `src/server/bot/executar.ts` | duas linhas: a mensagem terminal e o corpo da repetição |
+| `src/lib/bot/roteiro.test.ts` | invariantes da §5.1 |
 | `src/lib/bot/estado.test.ts` | troca mecânica dos ids `p2:` nos fixtures |
 | `CLAUDE.md` | correção de preço da §6.2 |
+| `ROADMAP.md` | registro da entrega e a dívida da §6.1 |
 
 Nenhum outro arquivo. Sem migration, sem rota, sem componente.
 
 ### 4.3 A escolha da mensagem
 
-Em `executar.ts`, dentro do ramo `encerrar`, depois de `qualificarLead` e no
-lugar de `FECHO`:
+A escolha é uma função pura em `roteiro.ts`, não um `??` solto dentro do
+executor. Assim ela é testável sem banco, sem Meta e sem `server-only`, que é
+onde `executar.ts` mora.
 
 ```ts
-const idTerminal = passo.idP2 ?? passo.idP1
-const texto = (idTerminal ? RESPOSTA_POR_ID[idTerminal] : undefined) ?? FECHO
+export function mensagemTerminal(idP1: string | null, idP2: string | null): string {
+  const id = idP2 ?? idP1
+  return (id ? RESPOSTA_POR_ID[id] : undefined) ?? FECHO
+}
 ```
 
 `idP2 ?? idP1` porque `p1:outro` termina no nível 1 e não tem `idP2`. O
 fallback para `FECHO` cobre os três ids que encaminham e qualquer id que entre
-na árvore sem resposta — falha para o lado seguro, que é a frase de espera, e
+na árvore sem resposta. Falha para o lado seguro, que é a frase de espera, e
 nunca para o silêncio.
 
-A ordem de `executar.ts` não muda: a qualificação continua vindo antes do envio,
-pela razão que já está comentada lá. O fecho é cortesia, a qualificação é o
-produto.
+`executar.ts` passa a chamar `mensagemTerminal(passo.idP1, passo.idP2)` no lugar
+da constante `FECHO`. A ordem não muda: a qualificação continua vindo antes do
+envio, pela razão que já está comentada lá. A resposta é cortesia, a
+qualificação é o produto.
 
-### 4.4 Ids em voo no deploy
+### 4.4 A repetição parava de fazer sentido
+
+`REPETICAO` é prefixada ao corpo da pergunta pendente quando a pessoa escreve
+texto livre em vez de apertar. Com o menu 1 abrindo em "Oi! Aqui é da Artha", a
+repetição virava um segundo "Oi!" na mesma conversa, três mensagens depois da
+primeira. Isso já acontece hoje e é exatamente o tipo de coisa que faz a URA
+parecer quebrada.
+
+`Pergunta` ganha um campo opcional `corpoRepetido`, que é o mesmo texto sem a
+saudação. O executor usa `passo.pergunta.corpoRepetido ?? passo.pergunta.corpo`
+quando a ação é `repetir`. Continua sendo dado no roteiro, e uma linha no
+executor.
+
+| | primeira vez | na repetição |
+| --- | --- | --- |
+| menu 1 | Oi! Aqui é da Artha. Me diz o que você procura. | O que você procura? |
+| menu 2 | Boa. O que você quer saber? | O que você quer saber? |
+
+### 4.5 Ids em voo no deploy
 
 Os ids de nível 2 mudam todos. Quem estiver entre o menu 2 e a resposta no
 instante do deploy vai tocar um botão cujo id não existe mais.
@@ -255,8 +278,14 @@ Além dos testes que já existem e continuam valendo:
 4. **Nenhuma copy da árvore contém travessão nem meia-risca** (`—` U+2014, `–`
    U+2013). É a regra de escrita do gestor e é verificável. Vale para perguntas,
    respostas, fecho e repetição. Hífen comum não conta.
-5. Os limites que já são testados continuam: no máximo 3 botões, título de no
-   máximo 20 caracteres, ids únicos em toda a árvore.
+5. **`RESPOSTA_POR_ID` e `ENCAMINHA` só falam de ids terminais.** Um id de menu
+   ou um id que não existe mais na árvore vira copy órfã que ninguém vê.
+6. **`mensagemTerminal` devolve a resposta do nível 2, cai no nível 1 quando não
+   há nível 2, e devolve `FECHO` para quem encaminha e para id desconhecido.**
+   Nunca devolve vazio.
+7. Os limites que já são testados continuam: no máximo 3 botões, título de no
+   máximo 20 caracteres, corpo de pergunta de no máximo 1024, ids únicos em toda
+   a árvore, e toda resposta terminal com tag.
 
 ### 5.2 `src/lib/bot/estado.test.ts`
 
