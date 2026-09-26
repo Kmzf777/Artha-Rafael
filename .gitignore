@@ -56,3 +56,9 @@ env*.txt
 # O template de ambiente PRECISA ser versionado — é ele que documenta quais
 # variáveis existem. O `.env*` acima o pegava junto com os arquivos de segredo.
 !.env.local.example
+
+# Base de leads do cliente. Nome, e-mail e telefone de gente real. O remoto é
+# GitHub e um `git add .` distraído publica os 12 contatos da planilha de
+# 2026-09-09. O importador de `scripts/` lê o CSV daqui, versionar não é opção.
+*.xlsx
+*.csv
