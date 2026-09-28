@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { proximoPasso, type MensagemBot } from './estado'
-import { AUTOR_BOT, P1, P2_POR_RAMO } from './roteiro'
+import { AUTOR_BOT, P1, P2_POR_RAMO, RTV2 } from './roteiro'
 
 // Relógio fixo: as mensagens só precisam de ordem, não de tempo real.
 let t = 0
@@ -307,26 +307,21 @@ describe('proximoPasso', () => {
     expect(passo.acao).toBe('calar')
   })
 
-  it('30. quem aperta o botão do template com payload nosso recebe a resposta, não a p1', () => {
-    // ESTE É O TESTE QUE PROVA O DEFEITO CONSERTADO. Contra o código de
-    // 2026-08-25 ele falha devolvendo { acao: 'perguntar', pergunta: P1 }.
-    expect(proximoPasso([disparo(), doTemplateRtv('rtv:voltar')])).toEqual({
+  it('30. o botão do template com payload nosso não é descartado', () => {
+    // ESTE É O TESTE QUE PROVA O DEFEITO DE 2026-08-25 CONSERTADO. Contra
+    // aquele código ele falha devolvendo { acao: 'perguntar', pergunta: P1 }:
+    // o disparo grava autoria nula, o portão de primeiro contato tratava o
+    // toque como primeiro contato, e o `button_id` ia para o lixo.
+    //
+    // Usava `rtv:voltar` até 2026-09-28. Ele deixou de encerrar porque passou a
+    // ABRIR a triagem — esse caminho agora é o teste 39. Um terminal prova a
+    // mesma coisa e continua provando depois da mudança.
+    expect(proximoPasso([disparo(), doTemplateRtv('rtv:problema')])).toEqual({
       acao: 'encerrar',
-      idP1: 'rtv:voltar',
+      idP1: 'rtv:problema',
       idP2: null,
       comFecho: true,
     })
-  })
-
-  it('31. vale para os três terminais do ramo', () => {
-    for (const id of ['rtv:voltar', 'rtv:problema', 'rtv:sair']) {
-      expect(proximoPasso([disparo(), doTemplateRtv(id)])).toEqual({
-        acao: 'encerrar',
-        idP1: id,
-        idP2: null,
-        comFecho: true,
-      })
-    }
   })
 
   it('32. o bot não fala duas vezes no mesmo toque', () => {
@@ -353,8 +348,11 @@ describe('proximoPasso', () => {
     expect(passo.acao).toBe('calar')
   })
 
-  it('36. vale para os três terminais', () => {
-    for (const id of ['rtv:voltar', 'rtv:problema', 'rtv:sair']) {
+  it('36. vale para os dois terminais do nível 1', () => {
+    // `rtv:voltar` saiu daqui em 2026-09-28: ele abre a triagem, então escrever
+    // depois dele não é "escrever depois do fim do roteiro" — a pergunta está
+    // pendente e o certo é repetir a triagem, que é o teste 42.
+    for (const id of ['rtv:problema', 'rtv:sair']) {
       const passo = proximoPasso([disparo(), doTemplateRtv(id), doBot(), entrada({ content: 'oi' })])
       expect(passo.acao, `${id} deixou a p1 voltar`).toBe('calar')
     }
@@ -370,15 +368,90 @@ describe('proximoPasso', () => {
     expect(passo.acao).toBe('calar')
   })
 
-  it('38. segundo toque no mesmo botão do template não responde de novo', () => {
-    // A porta de campanha vem antes de tudo, então sem esta trava ela é
-    // reentrante e o bot repete a resposta a cada toque.
-    const passo = proximoPasso([
-      disparo(),
-      doTemplateRtv('rtv:voltar'),
-      doBot(),
-      doTemplateRtv('rtv:voltar'),
-    ])
-    expect(passo.acao).toBe('calar')
+  it('38. segundo toque num TERMINAL do template não responde de novo', () => {
+    // A porta de campanha vem antes de tudo, então sem o portão de estado
+    // terminal ela seria reentrante e o bot repetiria a resposta a cada toque.
+    for (const id of ['rtv:problema', 'rtv:sair']) {
+      const passo = proximoPasso([disparo(), doTemplateRtv(id), doBot(), doTemplateRtv(id)])
+      expect(passo.acao, id).toBe('calar')
+    }
+  })
+
+  it('38b. segundo toque num botão que ABRE re-abre a pergunta, como na porta orgânica', () => {
+    // Não é exceção do ramo de campanha: `[oi, bot, p1:artha, bot, p1:artha]`
+    // também devolve a p2 de novo. Botão que abre re-abre; botão que fecha cala.
+    // A pergunta continua genuinamente pendente, e calar deixaria a pessoa sem
+    // caminho depois de um toque que ela deu de propósito.
+    expect(
+      proximoPasso([disparo(), doTemplateRtv('rtv:voltar'), doBot(), doTemplateRtv('rtv:voltar')])
+    ).toEqual({ acao: 'perguntar', pergunta: RTV2 })
+
+    expect(proximoPasso([entrada(), doBot(), botao('p1:artha'), doBot(), botao('p1:artha')])).toEqual(
+      { acao: 'perguntar', pergunta: P2_POR_RAMO['p1:artha'] }
+    )
+  })
+
+  it('39. quem aperta Quero voltar recebe a triagem, não o fecho', () => {
+    expect(proximoPasso([disparo(), doTemplateRtv('rtv:voltar')])).toEqual({
+      acao: 'perguntar',
+      pergunta: RTV2,
+    })
+  })
+
+  it('40. responder a triagem encerra, carregando os dois ids', () => {
+    expect(
+      proximoPasso([disparo(), doTemplateRtv('rtv:voltar'), doBot(), botao('rtv2:preco')])
+    ).toEqual({ acao: 'encerrar', idP1: 'rtv:voltar', idP2: 'rtv2:preco', comFecho: true })
+  })
+
+  it('41. depois da triagem respondida, texto livre cala', () => {
+    expect(
+      proximoPasso([
+        disparo(),
+        doTemplateRtv('rtv:voltar'),
+        doBot(),
+        botao('rtv2:preco'),
+        doBot(),
+        entrada({ content: 'obrigado' }),
+      ]).acao
+    ).toBe('calar')
+  })
+
+  it('42. quem abandona a triagem e escreve recebe a TRIAGEM de volta, não a p1', () => {
+    // `rtv:voltar` não é id de p1, então sem carregar o rtv1 pendente o
+    // fallback de texto livre devolvia a p1 de segmentação. Mesma família do
+    // defeito consertado de manhã, num caminho novo.
+    expect(
+      proximoPasso([
+        disparo(),
+        doTemplateRtv('rtv:voltar'),
+        doBot(),
+        entrada({ content: 'nao sei explicar' }),
+      ])
+    ).toEqual({ acao: 'repetir', pergunta: RTV2 })
+  })
+
+  it('43. insistindo uma segunda vez, entrega a gente', () => {
+    expect(
+      proximoPasso([
+        disparo(),
+        doTemplateRtv('rtv:voltar'),
+        doBot(),
+        entrada({ content: 'nao sei' }),
+        doBot(),
+        entrada({ content: 'serio, nao sei' }),
+      ])
+    ).toEqual({ acao: 'encerrar', idP1: null, idP2: null, comFecho: false })
+  })
+
+  it('44. os outros dois do nível 1 continuam encerrando em um toque', () => {
+    for (const id of ['rtv:problema', 'rtv:sair']) {
+      expect(proximoPasso([disparo(), doTemplateRtv(id)])).toEqual({
+        acao: 'encerrar',
+        idP1: id,
+        idP2: null,
+        comFecho: true,
+      })
+    }
   })
 })

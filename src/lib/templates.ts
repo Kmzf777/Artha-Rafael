@@ -129,7 +129,12 @@ export function parametrosDoTemplate(
  * vez de mandar a mensagem errada. Spec 2026-09-28 §5.4.
  */
 export function componentesDeBotao(nomeDoTemplate: string): ComponenteEnvio[] {
-  if (nomeDoTemplate in TEMPLATES_RTV) {
+  // `Object.hasOwn`, e não `in`: `in` percorre a cadeia de protótipos, então um
+  // template chamado `constructor` ou `toString` receberia os três botões do
+  // ramo. Não é alcançável hoje — o nome vem da coluna `agendamentos.template` —
+  // mas é o operador certo para "esta chave existe neste registro", e trocar
+  // custa menos que documentar a exceção.
+  if (Object.hasOwn(TEMPLATES_RTV, nomeDoTemplate)) {
     return RTV_BOTOES.map((b, index) => ({
       type: 'button' as const,
       sub_type: 'quick_reply' as const,
