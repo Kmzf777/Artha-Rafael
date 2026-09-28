@@ -20,7 +20,7 @@ import {
 import { getWindowStatus } from '@/lib/janela24h'
 import type { Segmento } from '@/mock/types'
 import { enviarBotoes, enviarTexto } from '../meta/client'
-import { marcarOptout, qualificarLead } from '../repo/leads'
+import { qualificarLead } from '../repo/leads'
 import { historicoParaBot, inserirMensagem } from '../repo/mensagens'
 import { db } from '../supabase'
 
@@ -78,13 +78,10 @@ export async function executarBot(gatilho: Gatilho): Promise<void> {
   // contradiz o "não retenta" da §3.7: aquilo é sobre a mensagem, não sobre a
   // gravação.
   if (gatilho.leadId) {
-    // OPT-OUT PRIMEIRO, antes de qualquer envio. A trava de `bot_acoes` já foi
-    // queimada acima e não há reprocessamento: se um erro da Meta deixar só uma
-    // das duas coisas acontecer, tem de ser a que impede o próximo disparo. A
-    // confirmação é cortesia, o opt-out é obrigação — mandar marketing para
-    // quem pediu para parar é violação de política da Meta, e quem paga é a
-    // reputação do número.
-    if (passo.idP1 === ID_OPTOUT) await marcarOptout(gatilho.leadId)
+    // O opt-out NÃO é gravado aqui. Ele mora em `POST /api/webhook`, porque
+    // este executor desiste antes de chegar neste ponto sempre que o bot está
+    // calado — e o caso mais comum de bot calado é operador que já respondeu,
+    // que é exatamente quem mais tem motivo para pedir para sair.
 
     // Os dois tipos são ANOTADOS de propósito. O projeto não liga
     // `noUncheckedIndexedAccess`, então indexar um `Record` devolve o tipo do

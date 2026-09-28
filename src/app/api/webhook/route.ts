@@ -3,12 +3,13 @@
 // → processa. A Meta re-entrega se demorarmos mais que ~5s, e re-entrega gera
 // duplicata — por isso a idempotência por wamid.
 import { after, NextResponse } from 'next/server'
+import { ID_OPTOUT } from '@/lib/bot/roteiro'
 import { parseWebhook } from '@/lib/webhookParse'
 import { executarBot } from '@/server/bot/executar'
 import { tentarReset } from '@/server/bot/reset'
 import { env } from '@/server/env'
 import { assinaturaConfere } from '@/server/meta/assinatura'
-import { acharOuCriarLeadPorTelefone } from '@/server/repo/leads'
+import { acharOuCriarLeadPorTelefone, marcarOptout } from '@/server/repo/leads'
 import { aplicarStatus, inserirMensagem } from '@/server/repo/mensagens'
 import { arquivarMidia } from '@/server/repo/midia'
 import { db } from '@/server/supabase'
@@ -102,6 +103,19 @@ async function processar(payload: unknown): Promise<void> {
       await db().from('leads')
         .update({ ultima_interacao_em: m.created_at }).eq('id', lead.id)
     }
+
+    // OPT-OUT INDEPENDE DO BOT. Spec 2026-09-26 §5.4, corrigida em 2026-09-28.
+    //
+    // `executarBot` desiste antes de gravar em três caminhos, e o mais provável
+    // é o primeiro: operador que já falou desliga o bot para sempre naquela
+    // conversa. É justamente quem já falou com o atendimento que tem mais
+    // motivo para pedir para sair — e era esse lead que apertava o botão,
+    // ouvia silêncio e voltava para a campanha seguinte.
+    //
+    // Fica FORA do try/catch do bot de propósito: se esta escrita falhar, o
+    // banco está inacessível e o `inserirMensagem` acima já teria estourado.
+    // As duas falham juntas ou passam juntas.
+    if (lead && m.button_id === ID_OPTOUT) await marcarOptout(lead.id)
 
     // Bot de qualificação. Isolado no seu próprio try/catch: uma falha aqui não
     // pode impedir a marcação do evento como processado nem derrubar o
