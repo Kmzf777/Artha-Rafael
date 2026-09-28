@@ -10,6 +10,8 @@ import 'server-only'
 import { proximoPasso } from '@/lib/bot/estado'
 import {
   AUTOR_BOT,
+  ehIdRtv,
+  ID_OPTOUT,
   mensagemTerminal,
   REPETICAO,
   SEGMENTO_POR_P1,
@@ -18,7 +20,7 @@ import {
 import { getWindowStatus } from '@/lib/janela24h'
 import type { Segmento } from '@/mock/types'
 import { enviarBotoes, enviarTexto } from '../meta/client'
-import { qualificarLead } from '../repo/leads'
+import { marcarOptout, qualificarLead } from '../repo/leads'
 import { historicoParaBot, inserirMensagem } from '../repo/mensagens'
 import { db } from '../supabase'
 
@@ -76,6 +78,14 @@ export async function executarBot(gatilho: Gatilho): Promise<void> {
   // contradiz o "não retenta" da §3.7: aquilo é sobre a mensagem, não sobre a
   // gravação.
   if (gatilho.leadId) {
+    // OPT-OUT PRIMEIRO, antes de qualquer envio. A trava de `bot_acoes` já foi
+    // queimada acima e não há reprocessamento: se um erro da Meta deixar só uma
+    // das duas coisas acontecer, tem de ser a que impede o próximo disparo. A
+    // confirmação é cortesia, o opt-out é obrigação — mandar marketing para
+    // quem pediu para parar é violação de política da Meta, e quem paga é a
+    // reputação do número.
+    if (passo.idP1 === ID_OPTOUT) await marcarOptout(gatilho.leadId)
+
     // Os dois tipos são ANOTADOS de propósito. O projeto não liga
     // `noUncheckedIndexedAccess`, então indexar um `Record` devolve o tipo do
     // valor mesmo quando não há entrada — e não há para `p1:outro` em
@@ -86,7 +96,16 @@ export async function executarBot(gatilho: Gatilho): Promise<void> {
       : passo.idP1
         ? TAG_POR_RESPOSTA[passo.idP1]
         : undefined
-    if (segmento || tag) await qualificarLead(gatilho.leadId, { segmento, tag })
+
+    // A porta de campanha qualifica SEM mexer em segmento: a coorte já nasce
+    // `artha` na importação. Quem pediu para sair não é qualificação nenhuma, e
+    // marcar como `qualificado` quem acabou de mandar parar seria mentira na
+    // tela de quem atende.
+    const qualificar = ehIdRtv(passo.idP1) && passo.idP1 !== ID_OPTOUT
+
+    if (segmento || tag || qualificar) {
+      await qualificarLead(gatilho.leadId, { segmento, tag, qualificar })
+    }
   }
 
   if (passo.comFecho) {
