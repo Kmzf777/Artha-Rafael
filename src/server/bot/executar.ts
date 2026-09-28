@@ -10,7 +10,7 @@ import 'server-only'
 import { proximoPasso } from '@/lib/bot/estado'
 import {
   AUTOR_BOT,
-  ehIdRtv,
+  ehTerminalRtv,
   ID_OPTOUT,
   mensagemTerminal,
   REPETICAO,
@@ -94,11 +94,16 @@ export async function executarBot(gatilho: Gatilho): Promise<void> {
         ? TAG_POR_RESPOSTA[passo.idP1]
         : undefined
 
-    // A porta de campanha qualifica SEM mexer em segmento: a coorte já nasce
-    // `artha` na importação. Quem pediu para sair não é qualificação nenhuma, e
-    // marcar como `qualificado` quem acabou de mandar parar seria mentira na
-    // tela de quem atende.
-    const qualificar = ehIdRtv(passo.idP1) && passo.idP1 !== ID_OPTOUT
+    // QUEM QUALIFICA É O TERMINAL, não o primeiro toque. Com a triagem, o id que
+    // decide está em `idP2` — e `ehTerminalRtv` já exclui `rtv:voltar`, que abre
+    // a pergunta em vez de fechar o roteiro. Quem toca no template e abandona na
+    // triagem não é qualificado, que é o pedido inteiro desta onda.
+    //
+    // Sem mexer em segmento: a coorte já nasce `artha` na importação. E quem
+    // pediu para sair não é qualificação nenhuma — marcar como `qualificado`
+    // quem acabou de mandar parar seria mentira na tela de quem atende.
+    const terminal = passo.idP2 ?? passo.idP1
+    const qualificar = ehTerminalRtv(terminal) && terminal !== ID_OPTOUT
 
     if (segmento || tag || qualificar) {
       await qualificarLead(gatilho.leadId, { segmento, tag, qualificar })
