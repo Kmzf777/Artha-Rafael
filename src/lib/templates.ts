@@ -1,6 +1,7 @@
 // Regras de template da Cloud API, puras e testadas. Existem para pegar
 // localmente o que a Meta recusaria — o erro 132018 encontrado no teste real de
 // 2026-08-20 é o caso-canário. Ver spec §7.1.
+import { PREFIXO_TEMPLATE_RTV, RTV_BOTOES } from './bot/roteiro'
 
 export type BotaoTemplate =
   | { tipo: 'QUICK_REPLY'; texto: string }
@@ -67,9 +68,11 @@ export function validarTemplate(t: RascunhoTemplate): string[] {
 }
 
 type Parametro = { type: 'text'; text: string }
+type ParametroPayload = { type: 'payload'; payload: string }
 export type ComponenteEnvio =
   | { type: 'body'; parameters: Parametro[] }
   | { type: 'button'; sub_type: 'url'; index: string; parameters: Parametro[] }
+  | { type: 'button'; sub_type: 'quick_reply'; index: string; parameters: ParametroPayload[] }
 
 /**
  * Monta os `components` do POST /messages. Componente vazio é OMITIDO: mandar
@@ -103,4 +106,30 @@ export function parametrosDoTemplate(
   })
 
   return componentes
+}
+
+/**
+ * Os componentes de botão do envio, resolvidos pelo NOME do template.
+ *
+ * É esta função que faz o quick reply do disparo chegar no webhook como
+ * `rtv:voltar` em vez da string `"Quero voltar"`. O payload de um botão de
+ * template não é definido na criação; ele é mandado a cada envio, e sem isto a
+ * Meta usa o próprio título — que não é id de roteiro nenhum.
+ *
+ * POR NOME, e não por uma coluna nova em `agendamentos`: a fila guarda só o
+ * nome do template, e acrescentar coluna para doze leads de teste é schema
+ * novo por nada. O custo é uma convenção, travada por teste.
+ *
+ * Não é `parametrosDoTemplate`: aquela resolve variável a partir de um
+ * `RascunhoTemplate`, e o worker não tem rascunho em mãos — teria de buscar um
+ * por lead disparado.
+ */
+export function componentesDeBotao(nomeDoTemplate: string): ComponenteEnvio[] {
+  if (!nomeDoTemplate.startsWith(PREFIXO_TEMPLATE_RTV)) return []
+  return RTV_BOTOES.map((b, index) => ({
+    type: 'button' as const,
+    sub_type: 'quick_reply' as const,
+    index: String(index),
+    parameters: [{ type: 'payload' as const, payload: b.id }],
+  }))
 }

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { contarVariaveis, parametrosDoTemplate, validarTemplate, type RascunhoTemplate } from './templates'
+import {
+  componentesDeBotao,
+  contarVariaveis,
+  parametrosDoTemplate,
+  validarTemplate,
+  type RascunhoTemplate,
+} from './templates'
 
 const BASE: RascunhoTemplate = {
   nome: 'reativacao_agosto',
@@ -109,5 +115,26 @@ describe('parametrosDoTemplate — monta o componente de envio', () => {
 
   it('omite o body quando o template não tem variáveis', () => {
     expect(parametrosDoTemplate({ ...BASE, corpo: 'Aviso fixo.', exemplos: [] }, [])).toEqual([])
+  })
+})
+
+describe('componentesDeBotao', () => {
+  it('monta um quick_reply por botão do ramo rtv, na ordem dos índices', () => {
+    expect(componentesDeBotao('mkt_rtv_isencao_01')).toEqual([
+      { type: 'button', sub_type: 'quick_reply', index: '0', parameters: [{ type: 'payload', payload: 'rtv:voltar' }] },
+      { type: 'button', sub_type: 'quick_reply', index: '1', parameters: [{ type: 'payload', payload: 'rtv:problema' }] },
+      { type: 'button', sub_type: 'quick_reply', index: '2', parameters: [{ type: 'payload', payload: 'rtv:sair' }] },
+    ])
+  })
+
+  it('o template antigo da conta também casa a convenção', () => {
+    expect(componentesDeBotao('mkt_rtv_voce_sabe_01')).toHaveLength(3)
+  })
+
+  it('devolve lista vazia fora da convenção', () => {
+    // Lista vazia importa: é ela que mantém a defesa do erro 132018, porque
+    // `enviarTemplate` só omite `components` quando a lista chega vazia.
+    expect(componentesDeBotao('modelo_teste')).toEqual([])
+    expect(componentesDeBotao('')).toEqual([])
   })
 })
