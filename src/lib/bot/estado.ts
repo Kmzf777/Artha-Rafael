@@ -13,6 +13,7 @@ import {
   ehIdConhecido,
   ehIdP1,
   ehIdP2,
+  ehIdRtv,
   perguntaP2,
   type Pergunta,
 } from './roteiro'
@@ -94,6 +95,19 @@ export function proximoPasso(mensagens: MensagemBot[]): Passo {
   // dele mesmo, não há nada a responder — é reentrega da Meta.
   const ultima = ms[ms.length - 1]
   if (ultima.direction !== 'inbound') return CALAR
+
+  // PORTA DE CAMPANHA. Spec 2026-09-26 §5.2.
+  //
+  // Vem antes do portão de primeiro contato de propósito. O disparo grava
+  // autoria nula, então `ehDoBot` é falso e o portão abaixo trataria este
+  // inbound como primeiro contato — devolvendo a P1 de segmentação para quem
+  // acabou de apertar "Quero voltar". O turno mais quente da campanha ia
+  // embora perguntando o que a planilha já responde.
+  //
+  // Nível único: o botão do template É a pergunta, e a resposta encerra.
+  if (ehIdRtv(ultima.button_id)) {
+    return { acao: 'encerrar', idP1: ultima.button_id, idP2: null, comFecho: true }
+  }
 
   // O bot ainda não falou: é aqui que o gatilho de primeiro contato mora. A
   // regra do produto continua sendo "quem já conversou antes não vê o bot" — o

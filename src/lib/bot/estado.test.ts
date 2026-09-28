@@ -35,6 +35,11 @@ function doTemplate(): MensagemBot {
   return entrada({ message_type: 'button', content: 'Quero voltar', button_id: 'quero_voltar' })
 }
 
+/** Quick reply de template COM payload nosso, como a fila passa a mandar. */
+function doTemplateRtv(id: string): MensagemBot {
+  return entrada({ message_type: 'button', content: 'x', button_id: id })
+}
+
 function doBot(): MensagemBot {
   return {
     direction: 'outbound',
@@ -300,5 +305,39 @@ describe('proximoPasso', () => {
   it('29. quem já tinha respondido a um disparo anterior não vê o bot', () => {
     const passo = proximoPasso([disparo(), doTemplate(), disparo(), doTemplate()])
     expect(passo.acao).toBe('calar')
+  })
+
+  it('30. quem aperta o botão do template com payload nosso recebe a resposta, não a p1', () => {
+    // ESTE É O TESTE QUE PROVA O DEFEITO CONSERTADO. Contra o código de
+    // 2026-08-25 ele falha devolvendo { acao: 'perguntar', pergunta: P1 }.
+    expect(proximoPasso([disparo(), doTemplateRtv('rtv:voltar')])).toEqual({
+      acao: 'encerrar',
+      idP1: 'rtv:voltar',
+      idP2: null,
+      comFecho: true,
+    })
+  })
+
+  it('31. vale para os três terminais do ramo', () => {
+    for (const id of ['rtv:voltar', 'rtv:problema', 'rtv:sair']) {
+      expect(proximoPasso([disparo(), doTemplateRtv(id)])).toEqual({
+        acao: 'encerrar',
+        idP1: id,
+        idP2: null,
+        comFecho: true,
+      })
+    }
+  })
+
+  it('32. o bot não fala duas vezes no mesmo toque', () => {
+    expect(proximoPasso([disparo(), doTemplateRtv('rtv:voltar'), doBot()]).acao).toBe('calar')
+  })
+
+  it('33. a porta orgânica não regride: texto livre continua abrindo na p1', () => {
+    expect(proximoPasso([entrada()])).toEqual({ acao: 'perguntar', pergunta: P1 })
+  })
+
+  it('34. operador que já falou desliga o bot também no ramo rtv', () => {
+    expect(proximoPasso([doHumano(), disparo(), doTemplateRtv('rtv:voltar')]).acao).toBe('calar')
   })
 })
