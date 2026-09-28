@@ -15,6 +15,10 @@ import {
   REPETICAO,
   mensagemTerminal,
   ehIdConhecido,
+  RTV_IDS,
+  RTV_BOTOES,
+  TEMPLATE_RTV,
+  ehIdRtv,
 } from './roteiro'
 
 const TODAS = [P1, ...Object.values(P2_POR_RAMO)]
@@ -23,10 +27,14 @@ const TODAS = [P1, ...Object.values(P2_POR_RAMO)]
  * Terminal é todo botão da p1 sem ramo em P2_POR_RAMO, mais todos os botões das
  * p2. DERIVADO da árvore, nunca escrito à mão: um ramo que vire terminal numa
  * revisão futura entra nesta lista sozinho, em vez de escapar em silêncio.
+ *
+ * O rtv entra inteiro porque é uma segunda porta de entrada, não um nível da
+ * árvore da p1: os três botões do template respondem e encerram, nenhum abre p2.
  */
 const TERMINAIS = [
   ...P1.botoes.map((b) => b.id).filter((id) => !(id in P2_POR_RAMO)),
   ...Object.values(P2_POR_RAMO).flatMap((p) => p.botoes.map((b) => b.id)),
+  ...RTV_IDS,
 ]
 
 /** Travessão (U+2014) e meia-risca (U+2013). Hífen comum não conta. */
@@ -168,5 +176,73 @@ describe('regras de escrita', () => {
     const linhas = RESPOSTA_POR_ID['p2:artha_comecar'].split('\n')
     const linhaDoLink = linhas.find((l) => l.includes('https://'))
     expect(linhaDoLink).toBe('https://artha.ia.br')
+  })
+})
+
+describe('ramo rtv (campanha de retomada)', () => {
+  it('todo id de RTV_IDS tem resposta própria', () => {
+    for (const id of RTV_IDS) {
+      expect(RESPOSTA_POR_ID[id], `sem resposta para ${id}`).toBeTruthy()
+    }
+  })
+
+  it('todo id de RTV_IDS tem tag', () => {
+    for (const id of RTV_IDS) {
+      expect(TAG_POR_RESPOSTA[id], `sem tag para ${id}`).toBeTruthy()
+    }
+  })
+
+  it('os títulos cabem no limite da Cloud API', () => {
+    expect(RTV_BOTOES).toHaveLength(MAX_BOTOES)
+    for (const b of RTV_BOTOES) {
+      expect(b.titulo.length, `"${b.titulo}" passa de ${MAX_TITULO}`).toBeLessThanOrEqual(MAX_TITULO)
+    }
+  })
+
+  it('a ordem dos botões é a ordem dos índices do template', () => {
+    expect(RTV_BOTOES.map((b) => b.id)).toEqual(['rtv:voltar', 'rtv:problema', 'rtv:sair'])
+  })
+
+  it('ehIdRtv reconhece só os ids do ramo', () => {
+    expect(ehIdRtv('rtv:voltar')).toBe(true)
+    expect(ehIdRtv('p1:artha')).toBe(false)
+    expect(ehIdRtv(null)).toBe(false)
+  })
+
+  it('ehIdConhecido passa a incluir o ramo rtv', () => {
+    expect(ehIdConhecido('rtv:sair')).toBe(true)
+  })
+
+  it('mensagemTerminal resolve um id rtv pelo idP1', () => {
+    expect(mensagemTerminal('rtv:voltar', null)).toBe(RESPOSTA_POR_ID['rtv:voltar'])
+  })
+
+  it('o corpo do template não abre nem fecha em variável', () => {
+    const corpo = TEMPLATE_RTV.corpo.trim()
+    expect(corpo.startsWith('{{')).toBe(false)
+    expect(corpo.endsWith('}}')).toBe(false)
+  })
+
+  it('o corpo do template tem exatamente uma variável, com um exemplo', () => {
+    expect(TEMPLATE_RTV.corpo.match(/\{\{\d+\}\}/g)).toHaveLength(1)
+    expect(TEMPLATE_RTV.exemplos).toHaveLength(1)
+  })
+
+  it('nenhuma copy do ramo cita nome de persona', () => {
+    const textos = [TEMPLATE_RTV.corpo, ...RTV_IDS.map((id) => RESPOSTA_POR_ID[id])]
+    for (const t of textos) {
+      expect(t).not.toMatch(/L[úu]cia|Clara|LucIA/i)
+    }
+  })
+
+  it('a copy do ramo segue as regras de escrita do gestor', () => {
+    const textos = [TEMPLATE_RTV.corpo, ...RTV_IDS.map((id) => RESPOSTA_POR_ID[id])]
+    for (const t of textos) {
+      expect(t, 'sem travessão').not.toMatch(/—/)
+      expect(t, 'sem markdown').not.toMatch(/\*|_{2}|#/)
+      for (const linha of t.split('\n')) {
+        if (linha.includes('http')) expect(linha.trim()).toMatch(/^https?:\/\/\S+$/)
+      }
+    }
   })
 })

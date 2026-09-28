@@ -73,6 +73,80 @@ export const P2_POR_RAMO: Record<string, Pergunta> = {
   },
 }
 
+// ---------------------------------------------------------------------------
+// Ramo de campanha. Spec 2026-09-26 §4.
+//
+// A porta de campanha não tem P1. Os três botões do template SÃO a primeira
+// pergunta, e quem aperta já respondeu — perguntar "o que você procura" depois
+// disso gasta o turno mais quente do disparo com o que a planilha já responde.
+//
+// A coorte é 100% Artha B2C, trial expirado, com pelo menos um banco conectado.
+// Não há o que segmentar.
+// ---------------------------------------------------------------------------
+
+/** Prefixo dos templates que recebem os payloads deste ramo. Spec §5.3. */
+export const PREFIXO_TEMPLATE_RTV = 'mkt_rtv'
+
+/**
+ * Os botões, NA ORDEM DOS ÍNDICES do template. A ordem é contrato: o payload do
+ * quick reply é casado por índice no envio, então trocar duas linhas aqui manda
+ * "quero voltar" para quem pediu para sair.
+ */
+export const RTV_BOTOES: Botao[] = [
+  { id: 'rtv:voltar', titulo: 'Quero voltar' },
+  { id: 'rtv:problema', titulo: 'Tive um problema' },
+  { id: 'rtv:sair', titulo: 'Não quero receber' },
+]
+
+export const RTV_IDS = RTV_BOTOES.map((b) => b.id)
+
+/** O terminal que desliga o lead de todo disparo futuro. */
+export const ID_OPTOUT = 'rtv:sair'
+
+/**
+ * O rascunho submetido à Meta. Mora aqui, junto dos botões, porque o título do
+ * botão aparece em dois lugares — no template aprovado e no payload do envio — e
+ * os dois têm de ser o mesmo dado. Fontes separadas divergem em silêncio.
+ *
+ * O CORPO NÃO ABRE NA VARIÁVEL. A validação da Meta recusa corpo que começa ou
+ * termina em parâmetro. Custa três caracteres e evita rejeição depois de
+ * submeter. Spec §4.1.
+ *
+ * A OFERTA VAI NO CORPO, não atrás do botão. Decisão do gestor em 2026-09-26: é
+ * verdade, não insinua arquivamento que não vai acontecer, e a impressão do
+ * template de marketing é o que se paga — quem não apertar nada precisa ter
+ * visto a oferta.
+ *
+ * ISENÇÃO É FATO COMERCIAL, NÃO COPY, e pior que o preço: preço está publicado
+ * em https://artha.ia.br e dá para conferir, a isenção de R$100 não está
+ * publicada em lugar nenhum. Se o cliente mudar a oferta, esta string muda à
+ * mão. Ver spec §6.1.
+ */
+export const TEMPLATE_RTV = {
+  nome: 'mkt_rtv_isencao_01',
+  categoria: 'MARKETING' as const,
+  idioma: 'pt_BR' as const,
+  cabecalho: null,
+  corpo: [
+    'Oi, {{1}}. Você conectou seu banco no Artha e parou no meio do caminho.',
+    '',
+    'Sua conta continua aqui, do jeito que você deixou.',
+    '',
+    'E a taxa de adesão de R$100 a gente tirou pra você voltar. O primeiro mês sai R$97, não R$197. Você conecta todos os seus bancos e testa por um mês, com a nossa ajuda.',
+    '',
+    'Reconectar leva 2 minutos.',
+  ].join('\n'),
+  exemplos: ['João'],
+  rodape: null,
+  botoes: RTV_BOTOES.map((b) => ({ tipo: 'QUICK_REPLY' as const, texto: b.titulo })),
+}
+
+const IDS_RTV = new Set(RTV_IDS)
+
+export function ehIdRtv(id: string | null): boolean {
+  return id !== null && IDS_RTV.has(id)
+}
+
 /**
  * O que sai quando a pessoa aperta. Spec §3.4.
  *
@@ -101,6 +175,21 @@ export const RESPOSTA_POR_ID: Record<string, string> = {
   'p2:dhana_como':
     'A Dhana é a plataforma que você usa para acompanhar seus clientes.\n\n' +
     'Cada um conecta as contas dele e você enxerga a carteira inteira num lugar só, sem pedir extrato para ninguém.',
+
+  // O bot NÃO afirma que a isenção já está aplicada. Não existe mecanismo de
+  // cupom confirmado pelo cliente — ele disse "podemos oferecer", que é
+  // intenção. O bot promete atendimento, que é coisa que a operação controla.
+  // Spec §6.1.
+  'rtv:voltar':
+    'Boa. Já passei para a equipe da Artha, que libera a isenção e te acompanha na hora de conectar os bancos.\n\n' +
+    'Se quiser ir olhando, a plataforma é essa.\n\n' +
+    'https://artha.ia.br',
+
+  'rtv:problema':
+    'Me conta o que travou. Pode escrever aqui mesmo.\n\n' +
+    'Alguém da Artha lê e te responde ainda hoje.',
+
+  'rtv:sair': 'Certo, não te mandamos mais nada por aqui. Obrigado pelo seu tempo.',
 }
 
 /**
@@ -132,6 +221,9 @@ export const TAG_POR_RESPOSTA: Record<string, string> = {
   'p2:dhana_como': 'dhana-quer-saber-como',
   'p2:dhana_demo': 'dhana-quer-demo',
   'p2:humano': 'quer-humano',
+  'rtv:voltar': 'rtv-quer-voltar',
+  'rtv:problema': 'rtv-teve-problema',
+  'rtv:sair': 'rtv-optout',
 }
 
 const IDS_P1 = new Set(P1.botoes.map((b) => b.id))
@@ -147,7 +239,7 @@ export function ehIdP2(id: string | null): boolean {
 
 /** Um id que o roteiro não conhece veio de campanha antiga ou de roteiro trocado. */
 export function ehIdConhecido(id: string | null): boolean {
-  return ehIdP1(id) || ehIdP2(id)
+  return ehIdP1(id) || ehIdP2(id) || ehIdRtv(id)
 }
 
 export function perguntaP2(idP1: string): Pergunta | null {
