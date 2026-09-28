@@ -17,9 +17,15 @@ import {
   ehIdConhecido,
   RTV_IDS,
   RTV_BOTOES,
-  TEMPLATE_RTV,
+  RTV2,
+  perguntaRtv2,
   ehIdRtv,
+  ehIdRtv1,
+  ehIdRtv2,
+  ehTerminalRtv,
+  TEMPLATES_RTV,
 } from './roteiro'
+import { validarTemplate } from '../templates'
 
 const TODAS = [P1, ...Object.values(P2_POR_RAMO)]
 
@@ -28,13 +34,15 @@ const TODAS = [P1, ...Object.values(P2_POR_RAMO)]
  * p2. DERIVADO da árvore, nunca escrito à mão: um ramo que vire terminal numa
  * revisão futura entra nesta lista sozinho, em vez de escapar em silêncio.
  *
- * O rtv entra inteiro porque é uma segunda porta de entrada, não um nível da
- * árvore da p1: os três botões do template respondem e encerram, nenhum abre p2.
+ * O rtv entra pelos dois níveis filtrados por `ehTerminalRtv`, e não inteiro:
+ * `rtv:voltar` deixou de ser terminal quando passou a abrir a triagem, e listar
+ * os ids do ramo à mão faria o próximo botão que ganhar triagem continuar
+ * contando como terminal.
  */
 const TERMINAIS = [
   ...P1.botoes.map((b) => b.id).filter((id) => !(id in P2_POR_RAMO)),
   ...Object.values(P2_POR_RAMO).flatMap((p) => p.botoes.map((b) => b.id)),
-  ...RTV_IDS,
+  ...[...RTV_IDS, ...RTV2.botoes.map((b) => b.id)].filter(ehTerminalRtv),
 ]
 
 /** Travessão (U+2014) e meia-risca (U+2013). Hífen comum não conta. */
@@ -180,18 +188,6 @@ describe('regras de escrita', () => {
 })
 
 describe('ramo rtv (campanha de retomada)', () => {
-  it('todo id de RTV_IDS tem resposta própria', () => {
-    for (const id of RTV_IDS) {
-      expect(RESPOSTA_POR_ID[id], `sem resposta para ${id}`).toBeTruthy()
-    }
-  })
-
-  it('todo id de RTV_IDS tem tag', () => {
-    for (const id of RTV_IDS) {
-      expect(TAG_POR_RESPOSTA[id], `sem tag para ${id}`).toBeTruthy()
-    }
-  })
-
   it('os títulos cabem no limite da Cloud API', () => {
     expect(RTV_BOTOES).toHaveLength(MAX_BOTOES)
     for (const b of RTV_BOTOES) {
@@ -214,29 +210,138 @@ describe('ramo rtv (campanha de retomada)', () => {
   })
 
   it('mensagemTerminal resolve um id rtv pelo idP1', () => {
-    expect(mensagemTerminal('rtv:voltar', null)).toBe(RESPOSTA_POR_ID['rtv:voltar'])
+    expect(mensagemTerminal('rtv:problema', null)).toBe(RESPOSTA_POR_ID['rtv:problema'])
+  })
+})
+
+describe('triagem do ramo rtv', () => {
+  const IDS_RTV2 = RTV2.botoes.map((b) => b.id)
+
+  it('rtv:voltar ABRE a triagem e não é terminal', () => {
+    expect(perguntaRtv2('rtv:voltar')).toBe(RTV2)
+    expect(ehTerminalRtv('rtv:voltar')).toBe(false)
   })
 
-  it('o corpo do template não abre nem fecha em variável', () => {
-    const corpo = TEMPLATE_RTV.corpo.trim()
-    expect(corpo.startsWith('{{')).toBe(false)
-    expect(corpo.endsWith('}}')).toBe(false)
+  it('os outros dois do nível 1 são terminais', () => {
+    expect(ehTerminalRtv('rtv:problema')).toBe(true)
+    expect(ehTerminalRtv('rtv:sair')).toBe(true)
   })
 
-  it('o corpo do template tem exatamente uma variável, com um exemplo', () => {
-    expect(TEMPLATE_RTV.corpo.match(/\{\{\d+\}\}/g)).toHaveLength(1)
-    expect(TEMPLATE_RTV.exemplos).toHaveLength(1)
+  it('todo id da triagem é terminal', () => {
+    for (const id of IDS_RTV2) expect(ehTerminalRtv(id), id).toBe(true)
   })
 
-  it('nenhuma copy do ramo cita nome de persona', () => {
-    const textos = [TEMPLATE_RTV.corpo, ...RTV_IDS.map((id) => RESPOSTA_POR_ID[id])]
-    for (const t of textos) {
-      expect(t).not.toMatch(/L[úu]cia|Clara|LucIA/i)
+  it('perguntaRtv2 devolve null para qualquer id que não abre', () => {
+    for (const id of ['rtv:problema', 'rtv:sair', 'p1:artha', ...IDS_RTV2]) {
+      expect(perguntaRtv2(id), id).toBeNull()
     }
   })
 
+  it('a triagem tem três botões dentro do limite de título', () => {
+    expect(RTV2.botoes).toHaveLength(MAX_BOTOES)
+    for (const b of RTV2.botoes) {
+      expect(b.titulo.length, `"${b.titulo}"`).toBeLessThanOrEqual(MAX_TITULO)
+    }
+  })
+
+  it('todo terminal do ramo tem resposta, e rtv:voltar NÃO tem', () => {
+    // Os dois lados importam. Sem o segundo, deixar a resposta velha de
+    // `rtv:voltar` para trás passaria despercebido e o bot mandaria texto E
+    // pergunta no mesmo turno.
+    for (const id of [...RTV_IDS, ...IDS_RTV2]) {
+      if (ehTerminalRtv(id)) expect(RESPOSTA_POR_ID[id], `sem resposta: ${id}`).toBeTruthy()
+    }
+    expect(RESPOSTA_POR_ID['rtv:voltar']).toBeUndefined()
+  })
+
+  it('todo terminal tem tag, e rtv:voltar não', () => {
+    for (const id of [...RTV_IDS, ...IDS_RTV2]) {
+      if (ehTerminalRtv(id)) expect(TAG_POR_RESPOSTA[id], `sem tag: ${id}`).toBeTruthy()
+    }
+    expect(TAG_POR_RESPOSTA['rtv:voltar']).toBeUndefined()
+  })
+
+  it('ehIdRtv1 e ehIdRtv2 não se sobrepõem', () => {
+    for (const id of RTV_IDS) {
+      expect(ehIdRtv1(id), id).toBe(true)
+      expect(ehIdRtv2(id), id).toBe(false)
+    }
+    for (const id of IDS_RTV2) {
+      expect(ehIdRtv2(id), id).toBe(true)
+      expect(ehIdRtv1(id), id).toBe(false)
+    }
+    expect(ehIdRtv1(null)).toBe(false)
+    expect(ehIdRtv2(null)).toBe(false)
+  })
+
+  it('ehIdConhecido cobre os dois níveis', () => {
+    expect(ehIdConhecido('rtv:voltar')).toBe(true)
+    expect(ehIdConhecido('rtv2:preco')).toBe(true)
+  })
+})
+
+describe('variantes de disparo', () => {
+  const VARIANTES = Object.entries(TEMPLATES_RTV)
+
+  it('são três', () => {
+    expect(VARIANTES).toHaveLength(3)
+  })
+
+  it('a chave do registro é o nome do template', () => {
+    // Fonte única: o script de criação e o montador de payload leem daqui, e
+    // divergir entre chave e `nome` faria um submeter A e o outro procurar B.
+    for (const [chave, t] of VARIANTES) expect(t.nome).toBe(chave)
+  })
+
+  it('cada variante passa na validação local da Meta', () => {
+    for (const [nome, t] of VARIANTES) expect(validarTemplate(t), nome).toEqual([])
+  })
+
+  it('nenhum corpo abre ou fecha em variável', () => {
+    for (const [nome, t] of VARIANTES) {
+      const c = t.corpo.trim()
+      expect(c.startsWith('{{'), nome).toBe(false)
+      expect(c.endsWith('}}'), nome).toBe(false)
+    }
+  })
+
+  it('cada corpo tem uma variável e um exemplo', () => {
+    for (const [nome, t] of VARIANTES) {
+      expect(t.corpo.match(/\{\{\d+\}\}/g), nome).toHaveLength(1)
+      expect(t.exemplos, nome).toHaveLength(1)
+    }
+  })
+
+  it('todas usam os mesmos três botões do nível 1', () => {
+    for (const [nome, t] of VARIANTES) {
+      expect(t.botoes.map((b) => b.texto), nome).toEqual(RTV_BOTOES.map((b) => b.titulo))
+    }
+  })
+
+  it('nenhuma promete teste grátis ou devolução', () => {
+    // Trava a §6.1: "testa por um mês" saiu do corpo porque o site não vende
+    // trial, e sem isto a frase volta na próxima revisão de copy sem ninguém ver.
+    for (const [nome, t] of VARIANTES) {
+      expect(t.corpo, nome).not.toMatch(/gr[áa]tis|gratuit|devolu[çc][ãa]o|reembolso/i)
+    }
+  })
+
+  it('nenhuma copy do ramo cita nome de persona', () => {
+    const textos = [
+      ...VARIANTES.map(([, t]) => t.corpo),
+      ...RTV2.botoes.map((b) => RESPOSTA_POR_ID[b.id]),
+      RTV2.corpo,
+    ]
+    for (const t of textos) expect(t).not.toMatch(/L[úu]cia|Clara|LucIA/i)
+  })
+
   it('a copy do ramo segue as regras de escrita do gestor', () => {
-    const textos = [TEMPLATE_RTV.corpo, ...RTV_IDS.map((id) => RESPOSTA_POR_ID[id])]
+    const textos = [
+      ...VARIANTES.map(([, t]) => t.corpo),
+      RTV2.corpo,
+      RTV2.corpoRepetido,
+      ...RTV2.botoes.map((b) => RESPOSTA_POR_ID[b.id]),
+    ]
     for (const t of textos) {
       expect(t, 'sem travessão').not.toMatch(/—/)
       expect(t, 'sem markdown').not.toMatch(/\*|_{2}|#/)

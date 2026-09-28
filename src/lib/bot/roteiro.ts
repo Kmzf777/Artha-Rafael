@@ -104,9 +104,72 @@ export const RTV_IDS = RTV_BOTOES.map((b) => b.id)
 export const ID_OPTOUT = 'rtv:sair'
 
 /**
- * O rascunho submetido à Meta. Mora aqui, junto dos botões, porque o título do
- * botão aparece em dois lugares — no template aprovado e no payload do envio — e
- * os dois têm de ser o mesmo dado. Fontes separadas divergem em silêncio.
+ * A TRIAGEM. Spec 2026-09-28 §3.3.
+ *
+ * Um toque não é qualificação. O cliente escreveu que a base "não comprou por
+ * algum motivo" e que ele não sabe qual — esta pergunta é a que ele não
+ * conseguiu fazer, e cada resposta arma a fala de abertura dele: preço é
+ * objeção que a isenção resolve, conexão é suporte que ela não resolve, e
+ * dúvida é falta de entendimento do produto.
+ */
+export const RTV2: Pergunta = {
+  corpo: 'Boa. Me diz o que te segurou da primeira vez.',
+  corpoRepetido: 'O que te segurou da primeira vez?',
+  botoes: [
+    { id: 'rtv2:preco', titulo: 'Foi o preço' },
+    { id: 'rtv2:tecnico', titulo: 'Travei na conexão' },
+    { id: 'rtv2:duvida', titulo: 'Não entendi direito' },
+  ],
+}
+
+/**
+ * Quem ABRE a triagem. Só `rtv:voltar`.
+ *
+ * Quem apertou "Tive um problema" tem um bloqueio concreto e a resposta já pede
+ * que ele escreva qual; pôr um menu na frente disso é o oposto de atendimento.
+ * Espelha `P2_POR_RAMO`, e é dele que `ehTerminalRtv` deriva quem fecha.
+ */
+export const RTV2_POR_RTV1: Record<string, Pergunta> = { 'rtv:voltar': RTV2 }
+
+const IDS_RTV1 = new Set(RTV_IDS)
+const IDS_RTV2 = new Set(RTV2.botoes.map((b) => b.id))
+
+export function ehIdRtv1(id: string | null): boolean {
+  return id !== null && IDS_RTV1.has(id)
+}
+
+export function ehIdRtv2(id: string | null): boolean {
+  return id !== null && IDS_RTV2.has(id)
+}
+
+export function ehIdRtv(id: string | null): boolean {
+  return ehIdRtv1(id) || ehIdRtv2(id)
+}
+
+export function perguntaRtv2(idRtv1: string): Pergunta | null {
+  return RTV2_POR_RTV1[idRtv1] ?? null
+}
+
+/**
+ * Fecha o roteiro do ramo. DERIVADO de quem abre, nunca escrito à mão: um botão
+ * do nível 1 que ganhe triagem própria numa revisão futura sai desta lista
+ * sozinho, em vez de continuar contando como terminal e calar o bot no meio da
+ * própria pergunta.
+ */
+export function ehTerminalRtv(id: string | null): boolean {
+  return ehIdRtv(id) && perguntaRtv2(id as string) === null
+}
+
+/**
+ * As três variantes de disparo. Spec 2026-09-28 §4.
+ *
+ * Moram aqui, junto dos botões, porque o título do botão aparece em dois
+ * lugares — no template aprovado e no payload do envio — e os dois têm de ser o
+ * mesmo dado. Fontes separadas divergem em silêncio.
+ *
+ * OS MESMOS TRÊS BOTÕES NAS TRÊS, de propósito: com uma variável mudando por
+ * vez, o que o cliente aprende é qual MENSAGEM funciona, não qual botão. Também
+ * é o que mantém o mapeamento de payload trivial.
  *
  * O CORPO NÃO ABRE NA VARIÁVEL. A validação da Meta recusa corpo que começa ou
  * termina em parâmetro. Custa três caracteres e evita rejeição depois de
@@ -117,34 +180,55 @@ export const ID_OPTOUT = 'rtv:sair'
  * template de marketing é o que se paga — quem não apertar nada precisa ter
  * visto a oferta.
  *
- * ISENÇÃO É FATO COMERCIAL, NÃO COPY, e pior que o preço: preço está publicado
- * em https://artha.ia.br e dá para conferir, a isenção de R$100 não está
- * publicada em lugar nenhum. Se o cliente mudar a oferta, esta string muda à
- * mão. Ver spec §6.1.
+ * ISENÇÃO É FATO COMERCIAL, NÃO COPY. O preço está publicado em
+ * https://artha.ia.br e dá para conferir; a isenção de R$100 não está publicada
+ * em lugar nenhum. Se o cliente mudar a oferta, estas strings mudam à mão.
+ *
+ * NENHUMA PROMETE TESTE NOVO. O site não vende trial, e "testa por um mês" lido
+ * por quem teve trial expirado lê como período grátis. Spec §6.1, travado por
+ * teste.
  */
-export const TEMPLATE_RTV = {
-  nome: 'mkt_rtv_isencao_01',
-  categoria: 'MARKETING' as const,
-  idioma: 'pt_BR' as const,
-  cabecalho: null,
-  corpo: [
+function rascunhoRtv(nome: string, linhas: string[]) {
+  return {
+    nome,
+    categoria: 'MARKETING' as const,
+    idioma: 'pt_BR' as const,
+    cabecalho: null,
+    corpo: linhas.join('\n'),
+    exemplos: ['João'],
+    rodape: null,
+    botoes: RTV_BOTOES.map((b) => ({ tipo: 'QUICK_REPLY' as const, texto: b.titulo })),
+  }
+}
+
+export const TEMPLATES_RTV = {
+  mkt_rtv_isencao_01: rascunhoRtv('mkt_rtv_isencao_01', [
     'Oi, {{1}}. Você conectou seu banco no Artha e parou no meio do caminho.',
     '',
     'Sua conta continua aqui, do jeito que você deixou.',
     '',
-    'E a taxa de adesão de R$100 a gente tirou pra você voltar. O primeiro mês sai R$97, não R$197. Você conecta todos os seus bancos e testa por um mês, com a nossa ajuda.',
+    'A taxa de adesão de R$100 a gente tirou pra você voltar. O primeiro mês sai R$97 em vez de R$197, e a gente te acompanha na hora de reconectar.',
     '',
     'Reconectar leva 2 minutos.',
-  ].join('\n'),
-  exemplos: ['João'],
-  rodape: null,
-  botoes: RTV_BOTOES.map((b) => ({ tipo: 'QUICK_REPLY' as const, texto: b.titulo })),
-}
+  ]),
 
-const IDS_RTV = new Set(RTV_IDS)
+  mkt_rtv_trial_01: rascunhoRtv('mkt_rtv_trial_01', [
+    'Oi, {{1}}. Seu teste do Artha terminou e você não chegou a continuar.',
+    '',
+    'Os bancos que você conectou continuam salvos, do jeito que você deixou.',
+    '',
+    'Pra voltar, a gente tirou a taxa de adesão de R$100. O primeiro mês sai R$97 em vez de R$197.',
+    '',
+    'Retomar é de onde você parou, não do zero.',
+  ]),
 
-export function ehIdRtv(id: string | null): boolean {
-  return id !== null && IDS_RTV.has(id)
+  mkt_rtv_pergunta_01: rascunhoRtv('mkt_rtv_pergunta_01', [
+    'Oi, {{1}}. Você sabe quanto gastou no mês passado?',
+    '',
+    'O Artha responde isso em 1 segundo. Ele soma suas contas e cartões sozinho, sem planilha nenhuma.',
+    '',
+    'Você chegou a conectar seu banco e parou no meio do caminho. Sua conta continua aqui.',
+  ]),
 }
 
 /**
@@ -176,14 +260,17 @@ export const RESPOSTA_POR_ID: Record<string, string> = {
     'A Dhana é a plataforma que você usa para acompanhar seus clientes.\n\n' +
     'Cada um conecta as contas dele e você enxerga a carteira inteira num lugar só, sem pedir extrato para ninguém.',
 
-  // O bot NÃO afirma que a isenção já está aplicada. Não existe mecanismo de
-  // cupom confirmado pelo cliente — ele disse "podemos oferecer", que é
-  // intenção. O bot promete atendimento, que é coisa que a operação controla.
-  // Spec §6.1.
-  'rtv:voltar':
-    'Boa. Já passei para a equipe da Artha, que libera a isenção e te acompanha na hora de conectar os bancos.\n\n' +
-    'Se quiser ir olhando, a plataforma é essa.\n\n' +
-    'https://artha.ia.br',
+  // A triagem responde e entrega. Nenhuma das três afirma que a isenção já está
+  // aplicada: quem libera é gente, porque não há mecanismo de cupom confirmado
+  // pelo cliente. Spec 2026-09-26 §6.1.
+  'rtv2:preco':
+    'Entendi. Já passei para a equipe da Artha, que fecha a isenção com você e te acompanha na hora de reconectar.',
+
+  'rtv2:tecnico':
+    'Isso a gente resolve junto. Me conta em que banco você travou, que alguém da Artha olha o seu caso.',
+
+  'rtv2:duvida':
+    'Sem problema, é pra isso que a gente está aqui. Já passei para a equipe da Artha, que te explica como funciona e responde o que faltar.',
 
   'rtv:problema':
     'Me conta o que travou. Pode escrever aqui mesmo.\n\n' +
@@ -221,9 +308,11 @@ export const TAG_POR_RESPOSTA: Record<string, string> = {
   'p2:dhana_como': 'dhana-quer-saber-como',
   'p2:dhana_demo': 'dhana-quer-demo',
   'p2:humano': 'quer-humano',
-  'rtv:voltar': 'rtv-quer-voltar',
   'rtv:problema': 'rtv-teve-problema',
   'rtv:sair': 'rtv-optout',
+  'rtv2:preco': 'rtv-motivo-preco',
+  'rtv2:tecnico': 'rtv-motivo-tecnico',
+  'rtv2:duvida': 'rtv-motivo-duvida',
 }
 
 const IDS_P1 = new Set(P1.botoes.map((b) => b.id))
