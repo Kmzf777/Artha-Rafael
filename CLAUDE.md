@@ -138,4 +138,8 @@ Os componentes em `src/components/ui/` usam `@base-ui/react` como primitivo — 
 
 ### Voz
 
-Institucional Artha — "Aqui é da Artha", "Equipe Artha". **Nenhum nome de persona** (Lúcia / Clara / LucIA) em copy de mensagem: há três nomes em circulação e a escolha é do cliente. Quando ele definir, é troca de string.
+Institucional Artha — "Aqui é da Artha", "equipe da Artha". **Nenhum nome de persona** (Lúcia / Clara / LucIA) em copy de mensagem.
+
+A regra deixou de ser "o cliente não escolheu" e passou a ter razão de produto. `artha.ia.br`, lido em 2026-09-26, vende **"Assistente Clara IA via WhatsApp"** como feature dos dois planos: Clara é a assistente **dentro do produto**. O número deste painel é o canal **comercial**, e chamar o bot de vendas de Clara faz o lead achar que já está falando com a assistente que ele ainda não assinou. Lúcia é pior — é o CRM B2B vendido a planejadores, e é o que o template `mkt_rtv_voce_sabe_01` assina por engano na conta da Meta.
+
+Regras de escrita da copy de mensagem, travadas por teste em `src/lib/bot/roteiro.test.ts`: sem travessão, sem dois-pontos introduzindo frase, sem markdown, e link sozinho na linha.

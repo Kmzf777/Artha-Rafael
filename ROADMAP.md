@@ -175,6 +175,43 @@ planejador não tem botão de preço e quem pergunta chega em gente.
 seção de 2026-08-20. Aquele número é de antes do banco estar configurado e de
 antes do bot de qualificação existir. Hoje `npm test` dá 291 passando e 1 pulado.
 
+## Concluído (2026-09-28) — funil de retomada
+
+A dívida de 17 dias com o cliente. A oferta que ele fechou no WhatsApp em
+2026-09-09 — isenção da taxa de adesão de R$100, R$197 vira R$97 no primeiro
+mês, para quem foi trial e já tinha conectado pelo menos um banco — virou funil.
+Spec: `docs/superpowers/specs/2026-09-26-funil-de-retomada-design.md`.
+
+**O defeito consertado.** Quem apertava um quick reply de template caía no
+portão de primeiro contato de `estado.ts` e ouvia a P1 de segmentação. O
+disparo grava autoria nula, então `ehDoBot` era falso e o inbound passava por
+primeiro contato. O `button_id` era descartado, e a coorte de maior intenção
+respondia duas vezes a mesma pergunta. `ehIdRtv` abre uma porta antes desse
+portão, e o botão do template passou a SER a primeira pergunta — a coorte é
+100% Artha B2C e não havia o que segmentar.
+
+**O payload.** `componentesDeBotao` manda o payload do quick reply no envio,
+resolvido pelo prefixo `mkt_rtv` do nome do template. Payload de botão de
+template não é definido na criação; sem mandar, a Meta usa o próprio título do
+botão, que não é id de roteiro nenhum.
+
+**Opt-out passou a existir.** Coluna `leads.optout_em` (migration 0003),
+gravada ANTES da confirmação e `podeDisparar` recusando. Não havia nenhum, e o
+template já trazia o botão. Quem escreve a coluna grava ISO ou `null`, nunca
+string vazia — `podeDisparar` testa com `!optoutEm`.
+
+**Dívida que nasce aqui:** o bot afirma a isenção de R$100, e ela não está
+publicada em lugar nenhum. O preço ao menos dá para conferir em `artha.ia.br`.
+Se o cliente mudar a oferta, `TEMPLATE_RTV.corpo` muda à mão.
+
+**Consequência aceita:** depois do opt-out a conversa continua na fila de
+atendimento, porque `esperandoResposta` conta toda mensagem do bot. Consertar
+mexeria em régua de três telas por 1 card de 12.
+
+**Pergunta aberta ao cliente, que bloqueia o disparo e não o código:** o cupom
+tem mecanismo? Ele disse "podemos oferecer", que é intenção. Por isso o
+`rtv:voltar` entrega a humano em vez de afirmar que a isenção já está aplicada.
+
 ## [NA FILA]
 
 - **B5 — base real e autenticação.** Depende do CSV dos 612 inativos, ainda

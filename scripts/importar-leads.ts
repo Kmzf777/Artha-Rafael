@@ -61,18 +61,20 @@ async function main(): Promise<void> {
   const db = createClient(url!, chave!, { auth: { persistSession: false } })
   const linhas = lerCsv(readFileSync(caminho!, 'utf8'))
 
-  const aceitos: { linha: Linha; canonico: string }[] = []
+  // `telNorm11` aqui é PORTEIRO, não conversor: o valor canônico não é gravado
+  // por nós. `tel_norm` é coluna gerada no Postgres, por uma função que espelha
+  // esta — gravar o nosso lado aqui seria a terceira cópia da mesma regra.
+  const aceitos: Linha[] = []
   const recusados: Linha[] = []
 
   for (const linha of linhas) {
-    const canonico = telNorm11(linha.telefone)
-    if (canonico === null) recusados.push(linha)
-    else aceitos.push({ linha, canonico })
+    if (telNorm11(linha.telefone) === null) recusados.push(linha)
+    else aceitos.push(linha)
   }
 
   // `tel_norm` é coluna gerada, com índice único (`leads_tel_norm_uk`). O
   // upsert conflita por ela, então reimportar o mesmo arquivo não duplica.
-  const registros = aceitos.map(({ linha }) => ({
+  const registros = aceitos.map((linha) => ({
     nome: linha.nome,
     // Guarda com DDI, a forma que a Meta entrega. `tel_norm` deriva sozinha.
     telefone: toBrazilPhone(linha.telefone),
