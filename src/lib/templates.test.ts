@@ -137,6 +137,16 @@ describe('componentesDeBotao', () => {
     expect(componentesDeBotao('')).toEqual([])
   })
 
+  it('não confunde herança de protótipo com template registrado', () => {
+    // `'constructor' in {}` é true. Com o operador `in`, um template com esse
+    // nome receberia os três botões do ramo e o lead cairia num roteiro que não
+    // é o dele. Não é alcançável hoje (o nome vem de `agendamentos.template`),
+    // mas é o que trava a troca de volta para `in` numa simplificação futura.
+    for (const herdado of ['constructor', 'toString', 'hasOwnProperty', '__proto__']) {
+      expect(componentesDeBotao(herdado), herdado).toEqual([])
+    }
+  })
+
   it('LANÇA para nome de campanha fora do registro', () => {
     // Era o ponto único de falha do funil: sair sem payload faz a Meta usar o
     // título do botão como id, e os leads voltam todos para a p1 sem erro, sem
