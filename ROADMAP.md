@@ -261,6 +261,69 @@ script imprime quantos pulou.
 tem mecanismo? Ele disse "podemos oferecer", que é intenção. Por isso o
 `rtv:voltar` entrega a humano em vez de afirmar que a isenção já está aplicada.
 
+## Concluído (2026-09-28) — triagem antes de qualificar
+
+Um toque virava `qualificado`, e o gestor cortou: *"só uma mensagem >
+qualificação, fica direto demais"*. Spec:
+`docs/superpowers/specs/2026-09-28-triagem-e-variantes-design.md`.
+
+O argumento é do próprio cliente. Ele escreveu que a coorte "não comprou por
+algum motivo" e não sabe qual. A triagem pergunta isso, e cada resposta arma a
+fala de abertura dele: preço é objeção que a isenção resolve, conexão é suporte
+que ela não resolve, dúvida é falta de entendimento do produto.
+
+`rtv:voltar` deixou de ser terminal e passou a abrir `RTV2`. Só os terminais
+qualificam, mais `rtv:problema`, que o gestor mandou manter porque "tive um
+problema" já é sinal concreto, diferente de "quero voltar", que é vago.
+
+**O motor precisou aprender a diferença entre abrir e fechar.** Duas armadilhas
+caíram junto: o portão de estado terminal contava `rtv:voltar` e calaria o bot no
+meio da própria triagem; e o fallback de texto livre só conhecia `idP1`, então
+quem abandonasse a triagem escrevendo recebia a P1 de segmentação. Era a mesma
+família do defeito consertado de manhã, num caminho novo.
+
+`ehTerminalRtv` é DERIVADO de quem abre (`ehIdRtv(id) && perguntaRtv2(id) ===
+null`), nunca escrito à mão. Um botão do nível 1 que ganhe triagem própria numa
+revisão futura sai da lista de terminais sozinho, em vez de calar o bot no meio
+da própria pergunta. Lista escrita à mão foi o que produziu o defeito de manhã.
+
+**Três variantes de disparo**, com os mesmos três botões de propósito: assim o
+que se aprende é qual mensagem funciona, não qual botão. `mkt_rtv_isencao_01`,
+`mkt_rtv_trial_01` e `mkt_rtv_pergunta_01`. O script submete as três numa
+passada e não para na primeira recusa.
+
+**O ponto único de falha do funil morreu.** Template começando em `mkt_rtv` que
+não esteja em `TEMPLATES_RTV` agora **lança** em vez de sair sem payload. Antes,
+um rename silenciava o funil inteiro: a Meta usaria o título do botão como id e a
+base voltaria toda para a P1, sem erro, sem log e sem teste vermelho. O `throw`
+sobe pelo try/catch de `fila.ts` e vira agendamento falho com a mensagem visível.
+Alcança de propósito o `mkt_rtv_voce_sabe_01` que está `APPROVED` na conta
+assinando "Lúcia".
+
+**Quebra de comparabilidade:** número de qualificados antes e depois desta onda
+não se compara. Passou a exigir a resposta da triagem.
+
+**Correção de copy:** "Você conecta todos os seus bancos e testa por um mês" saiu
+do corpo. Vinha do argumento do cliente, onde "testar por 1 mês" é o primeiro mês
+**pago** de R$97 — o desconto é a isenção, não gratuidade. `artha.ia.br` não
+vende trial em lugar nenhum, e lido por quem teve trial expirado aquilo lê como
+período grátis. Um teste trava "grátis", "gratuito", "devolução" e "reembolso"
+fora dos corpos.
+
+**Botão que abre re-abre; botão que fecha cala.** O teste 38b registra isso e
+prova que a porta orgânica já se comportava assim com `p1:artha`. Não é exceção
+do ramo de campanha.
+
+### Estado verificado em 2026-09-28
+
+Supabase de volta. `npm run lint`, `npx tsc --noEmit` e `npm run build` limpos;
+`npm test` dá **340 passando e 1 pulado**, com os 14 de paridade `tel_norm11`
+contra o Postgres agora incluídos e verdes.
+
+**A migration `0003_optout.sql` NÃO está aplicada.** As tabelas de `0001` e
+`0002` existem, mas `leads.optout_em` não. Sem ela `marcarOptout` estoura com
+`42703` e o botão "Não quero receber" não marca ninguém.
+
 ## [NA FILA]
 
 - **B5 — base real e autenticação.** Depende do CSV dos 612 inativos, ainda
