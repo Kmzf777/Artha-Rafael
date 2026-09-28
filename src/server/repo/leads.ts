@@ -13,6 +13,7 @@ type LinhaLead = {
   segmento: string; stage: string; plano_status: string; plano_valor: number | null
   ultimo_acesso_em: string | null; primeiro_contato_em: string; ultima_interacao_em: string
   cidade: string | null; tags: string[]; notas: string | null; ficticio: boolean
+  optout_em: string | null
 }
 
 /** Linha do banco (snake_case) → domínio (camelCase de `src/mock/types.ts`). */
@@ -33,6 +34,7 @@ export function paraDominio(l: LinhaLead): Lead {
     tags: l.tags ?? [],
     notas: l.notas,
     ficticio: l.ficticio ?? false,
+    optoutEm: l.optout_em ?? null,
   }
 }
 
@@ -186,7 +188,7 @@ export async function mudarEtapaLead(id: string, stage: Lead['stage']): Promise<
  */
 export async function qualificarLead(
   id: string,
-  dados: { segmento?: Lead['segmento']; tag?: string }
+  dados: { segmento?: Lead['segmento']; tag?: string; qualificar?: boolean }
 ): Promise<void> {
   const atual = await buscarLead(id)
   if (!atual) return
@@ -196,10 +198,37 @@ export async function qualificarLead(
     patch.segmento = dados.segmento
     patch.stage = 'qualificado'
   }
+  // A porta de campanha qualifica SEM tocar em segmento: a coorte já nasce
+  // `artha` na importação, e reescrever com o mesmo valor esconderia erro de
+  // importação em vez de revelá-lo.
+  if (dados.qualificar) patch.stage = 'qualificado'
   if (dados.tag && !atual.tags.includes(dados.tag)) {
     patch.tags = [...atual.tags, dados.tag]
   }
 
   const { error } = await db().from('leads').update(patch).eq('id', id)
   if (error) throw new Error(`qualificarLead: ${error.message}`)
+}
+
+/**
+ * Desliga o lead de todo disparo futuro. Spec 2026-09-26 §5.4.
+ *
+ * Função própria, e não um campo de `qualificarLead`: opt-out não é
+ * qualificação, não mexe em `stage`, e precisa ser a escrita mais simples
+ * possível — ela roda antes do envio da confirmação justamente para sobreviver
+ * a um erro da Meta.
+ *
+ * Idempotente pelo `is('optout_em', null)`: um segundo toque no mesmo botão não
+ * reescreve a data original, que é o que se apresenta se alguém reclamar.
+ *
+ * Grava ISO ou nada. NUNCA string vazia: `podeDisparar` testa com `!optoutEm`,
+ * e `''` passaria pela trava como se o lead nunca tivesse pedido para sair.
+ */
+export async function marcarOptout(id: string): Promise<void> {
+  const { error } = await db()
+    .from('leads')
+    .update({ optout_em: new Date().toISOString() })
+    .eq('id', id)
+    .is('optout_em', null)
+  if (error) throw new Error(`marcarOptout: ${error.message}`)
 }
