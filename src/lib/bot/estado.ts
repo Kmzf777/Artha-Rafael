@@ -96,6 +96,23 @@ export function proximoPasso(mensagens: MensagemBot[]): Passo {
   const ultima = ms[ms.length - 1]
   if (ultima.direction !== 'inbound') return CALAR
 
+  // O RAMO DE CAMPANHA É DE NÍVEL ÚNICO: respondido o botão, o roteiro acabou.
+  //
+  // A régua de "roteiro encerrado" mais abaixo não serve aqui, por duas razões
+  // independentes. O corte dela é a primeira fala do bot, e numa campanha o
+  // toque vem ANTES dela — a primeira fala do bot É a resposta ao toque. E
+  // `ehRespostaTerminal` identifica terminal por id DESCONHECIDO, coisa que um
+  // id `rtv:` deixou de ser quando entrou em `ehIdConhecido`.
+  //
+  // Sem isto, quem apertou "Tive um problema", ouviu "me conta o que travou" e
+  // contou, recebia a p1 de segmentação de volta. E quem pediu para sair
+  // recebia menu de vendas ao responder. Vem antes da porta de campanha para
+  // que o segundo toque no mesmo botão também cale, em vez de repetir a
+  // resposta.
+  if (ms.slice(0, -1).some((m) => m.direction === 'inbound' && ehIdRtv(m.button_id))) {
+    return CALAR
+  }
+
   // PORTA DE CAMPANHA. Spec 2026-09-26 §5.2.
   //
   // Vem antes do portão de primeiro contato de propósito. O disparo grava

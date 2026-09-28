@@ -340,4 +340,45 @@ describe('proximoPasso', () => {
   it('34. operador que já falou desliga o bot também no ramo rtv', () => {
     expect(proximoPasso([doHumano(), disparo(), doTemplateRtv('rtv:voltar')]).acao).toBe('calar')
   })
+
+  it('35. depois do terminal rtv, texto livre não traz a p1 de volta', () => {
+    // O bot pediu "me conta o que travou". A pessoa contou. Devolver o menu de
+    // segmentação aqui é o defeito que este ramo existe para consertar.
+    const passo = proximoPasso([
+      disparo(),
+      doTemplateRtv('rtv:problema'),
+      doBot(),
+      entrada({ content: 'nao conectou o Nubank' }),
+    ])
+    expect(passo.acao).toBe('calar')
+  })
+
+  it('36. vale para os três terminais', () => {
+    for (const id of ['rtv:voltar', 'rtv:problema', 'rtv:sair']) {
+      const passo = proximoPasso([disparo(), doTemplateRtv(id), doBot(), entrada({ content: 'oi' })])
+      expect(passo.acao, `${id} deixou a p1 voltar`).toBe('calar')
+    }
+  })
+
+  it('37. quem pediu para sair não recebe menu de vendas ao responder', () => {
+    const passo = proximoPasso([
+      disparo(),
+      doTemplateRtv('rtv:sair'),
+      doBot(),
+      entrada({ content: 'ok obrigado' }),
+    ])
+    expect(passo.acao).toBe('calar')
+  })
+
+  it('38. segundo toque no mesmo botão do template não responde de novo', () => {
+    // A porta de campanha vem antes de tudo, então sem esta trava ela é
+    // reentrante e o bot repete a resposta a cada toque.
+    const passo = proximoPasso([
+      disparo(),
+      doTemplateRtv('rtv:voltar'),
+      doBot(),
+      doTemplateRtv('rtv:voltar'),
+    ])
+    expect(passo.acao).toBe('calar')
+  })
 })
