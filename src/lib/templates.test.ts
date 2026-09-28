@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { TEMPLATES_RTV } from '@/lib/bot/roteiro'
 import {
   componentesDeBotao,
   contarVariaveis,
@@ -119,22 +120,29 @@ describe('parametrosDoTemplate — monta o componente de envio', () => {
 })
 
 describe('componentesDeBotao', () => {
-  it('monta um quick_reply por botão do ramo rtv, na ordem dos índices', () => {
-    expect(componentesDeBotao('mkt_rtv_isencao_01')).toEqual([
-      { type: 'button', sub_type: 'quick_reply', index: '0', parameters: [{ type: 'payload', payload: 'rtv:voltar' }] },
-      { type: 'button', sub_type: 'quick_reply', index: '1', parameters: [{ type: 'payload', payload: 'rtv:problema' }] },
-      { type: 'button', sub_type: 'quick_reply', index: '2', parameters: [{ type: 'payload', payload: 'rtv:sair' }] },
-    ])
+  it('monta um quick_reply por botão para cada variante registrada', () => {
+    for (const nome of Object.keys(TEMPLATES_RTV)) {
+      expect(componentesDeBotao(nome), nome).toEqual([
+        { type: 'button', sub_type: 'quick_reply', index: '0', parameters: [{ type: 'payload', payload: 'rtv:voltar' }] },
+        { type: 'button', sub_type: 'quick_reply', index: '1', parameters: [{ type: 'payload', payload: 'rtv:problema' }] },
+        { type: 'button', sub_type: 'quick_reply', index: '2', parameters: [{ type: 'payload', payload: 'rtv:sair' }] },
+      ])
+    }
   })
 
-  it('o template antigo da conta também casa a convenção', () => {
-    expect(componentesDeBotao('mkt_rtv_voce_sabe_01')).toHaveLength(3)
-  })
-
-  it('devolve lista vazia fora da convenção', () => {
+  it('devolve lista vazia para template que não é de campanha', () => {
     // Lista vazia importa: é ela que mantém a defesa do erro 132018, porque
     // `enviarTemplate` só omite `components` quando a lista chega vazia.
     expect(componentesDeBotao('modelo_teste')).toEqual([])
     expect(componentesDeBotao('')).toEqual([])
+  })
+
+  it('LANÇA para nome de campanha fora do registro', () => {
+    // Era o ponto único de falha do funil: sair sem payload faz a Meta usar o
+    // título do botão como id, e os leads voltam todos para a p1 sem erro, sem
+    // log e sem teste vermelho. `mkt_rtv_voce_sabe_01` está APPROVED na conta e
+    // assina "Lúcia" — disparar ele à mão tem de falhar alto.
+    expect(() => componentesDeBotao('mkt_rtv_voce_sabe_01')).toThrow(/TEMPLATES_RTV/)
+    expect(() => componentesDeBotao('mkt_rtv_qualquer_coisa')).toThrow(/TEMPLATES_RTV/)
   })
 })
