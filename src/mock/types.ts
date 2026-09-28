@@ -35,6 +35,13 @@ export type Lead = {
    * real, e um disparo acidental viraria spam a desconhecidos.
    */
   ficticio?: boolean
+  /**
+   * Quando o lead pediu para não receber mais disparo. `null`/ausente = nunca
+   * pediu. OPCIONAL de propósito: `src/mock/db.ts` constrói 760 leads sem esta
+   * chave, e torná-la obrigatória quebraria o dataset inteiro por uma coluna
+   * que só o motor de disparo lê.
+   */
+  optoutEm?: string | null
 }
 
 export type Message = {

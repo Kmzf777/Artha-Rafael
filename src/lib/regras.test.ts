@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { AUTOR_BOT, FECHO } from '@/lib/bot/roteiro'
 import type { Conversa, Lead, Message } from '@/mock/types'
-import { esperandoResposta, getMetrics, podeDisparar, type DadosMetrics } from './regras'
+import {
+  esperandoResposta,
+  getMetrics,
+  podeDisparar,
+  recorteReativacao,
+  type DadosMetrics,
+} from './regras'
 
 function lead(extra: Partial<Lead> = {}): Lead {
   return {
@@ -108,5 +114,32 @@ describe('filaAtendimento — o fecho do bot não tira o lead da fila', () => {
     const { conversas } = getMetrics(dados(cs, ms), new Date('2026-01-02T12:00:00.000Z'))
 
     expect(conversas.filaAtendimento).toBe(1)
+  })
+})
+
+describe('opt-out', () => {
+  it('podeDisparar recusa lead que pediu para sair', () => {
+    expect(podeDisparar(lead({ ficticio: false, optoutEm: '2026-09-27T10:00:00.000Z' }))).toBe(false)
+  })
+
+  it('podeDisparar aceita lead sem opt-out', () => {
+    expect(podeDisparar(lead({ ficticio: false, optoutEm: null }))).toBe(true)
+  })
+
+  it('lead sem a propriedade optoutEm continua podendo receber', () => {
+    // Lead vindo de select antigo, ou do mock, chega sem a chave. Ausente não
+    // pode virar opt-out: silenciaria a base inteira de uma vez. É o mesmo
+    // raciocínio do teste de `ficticio` ausente logo acima.
+    expect(podeDisparar(lead({ ficticio: false }))).toBe(true)
+  })
+
+  it('recorteReativacao não devolve lead com opt-out', () => {
+    const agora = new Date('2026-09-27T12:00:00.000Z')
+    const leads = [
+      lead({ id: 'op1', planoStatus: 'trial_expirado', ultimoAcessoEm: null, optoutEm: '2026-09-27T10:00:00.000Z' }),
+      lead({ id: 'op2', planoStatus: 'trial_expirado', ultimoAcessoEm: null, optoutEm: null }),
+    ].filter(podeDisparar)
+    const r = recorteReativacao(leads, { planoStatus: 'trial_expirado' }, agora)
+    expect(r.map((l) => l.id)).toEqual(['op2'])
   })
 })

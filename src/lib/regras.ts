@@ -312,7 +312,13 @@ export function getMetrics(dados: DadosMetrics, agora: Date): Metrics {
  * Chamada em dois pontos de propósito — na montagem do recorte, para a
  * contagem da tela ser honesta, e dentro do worker, imediatamente antes da
  * chamada irreversível à Meta.
+ *
+ * A segunda trava é o opt-out: quem apertou "Não quero receber" sai do motor
+ * aqui, e só aqui. As duas checagens são de valor ausente-ou-falso, não
+ * `=== null`. Um lead que chegue de um `select` sem a coluna traz `undefined`,
+ * e comparação estrita transformaria isso em "pode disparar" para `optoutEm` —
+ * que é o lado errado de errar. É o mesmo motivo que `ficticio` usa `!== true`.
  */
 export function podeDisparar(lead: Lead): boolean {
-  return lead.ficticio !== true
+  return lead.ficticio !== true && !lead.optoutEm
 }
