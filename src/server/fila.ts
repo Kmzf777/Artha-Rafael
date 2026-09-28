@@ -10,13 +10,15 @@
 // sincronia, e a que ficasse para trás é a que manda mensagem real para a
 // semente.
 //
-// LIMITAÇÃO CONHECIDA: o disparo só preenche variáveis de CORPO. Variável em
-// botão URL não é suportada por este fluxo — a criação de campanha resolve um
-// `variaveis[]` por lead e não tem onde guardar parâmetro de botão. Template com
-// {{1}} na URL do botão precisaria de outra coluna na fila antes de sair daqui.
+// LIMITAÇÃO CONHECIDA: das VARIÁVEIS, o disparo só preenche as de corpo.
+// Variável em botão URL continua fora deste fluxo — a criação de campanha
+// resolve um `variaveis[]` por lead e não tem onde guardar parâmetro de botão.
+// Template com {{1}} na URL do botão precisaria de outra coluna na fila antes
+// de sair daqui. Botão quick_reply é outro caso e JÁ sai: o payload dele vem de
+// `componentesDeBotao`, resolvido pelo nome do template, sem dado da fila.
 import 'server-only'
 import { telNorm11, toBrazilPhone } from '@/lib/phoneUtils'
-import type { ComponenteEnvio } from '@/lib/templates'
+import { componentesDeBotao, type ComponenteEnvio } from '@/lib/templates'
 import { podeDisparar } from '@/lib/regras'
 import { env } from '@/server/env'
 import { enviarTemplate, MetaError } from '@/server/meta/client'
@@ -116,15 +118,19 @@ export async function processarFila(): Promise<ResultadoFila> {
       }
       const destino = toBrazilPhone(lead.telefone)
 
-      // Só variáveis de corpo. Componente vazio é OMITIDO — mandar
-      // `components: []` para template sem variável é o erro 132018 que esta
-      // conta já levou; `enviarTemplate` também omite `components` quando a
-      // lista chega vazia, então a defesa existe nas duas pontas.
+      // Corpo + botões. O componente de botão é o que faz o quick reply chegar
+      // no webhook como `rtv:voltar` em vez do título — ver
+      // `componentesDeBotao`. Componente vazio continua sendo OMITIDO: mandar
+      // `components: []` é o erro 132018 que esta conta já levou, e
+      // `enviarTemplate` também omite quando a lista chega vazia, então a
+      // defesa existe nas duas pontas.
       const variaveis = Array.isArray(a.variaveis) ? a.variaveis : []
-      const componentes: ComponenteEnvio[] =
-        variaveis.length > 0
-          ? [{ type: 'body', parameters: variaveis.map((text) => ({ type: 'text', text })) }]
-          : []
+      const componentes: ComponenteEnvio[] = [
+        ...(variaveis.length > 0
+          ? ([{ type: 'body', parameters: variaveis.map((text) => ({ type: 'text', text })) }] as ComponenteEnvio[])
+          : []),
+        ...componentesDeBotao(a.template),
+      ]
 
       const resposta = await enviarTemplate(destino, a.template, componentes)
       jaEnviou = true
