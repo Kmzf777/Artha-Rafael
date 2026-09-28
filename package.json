@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "reset:storage": "tsx scripts/reset-storage.ts"
+    "reset:storage": "tsx scripts/reset-storage.ts",
+    "importar:leads": "tsx scripts/importar-leads.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
