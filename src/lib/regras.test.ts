@@ -143,3 +143,42 @@ describe('opt-out', () => {
     expect(r.map((l) => l.id)).toEqual(['op2'])
   })
 })
+
+describe('recorte por lote', () => {
+  const agora = new Date('2026-09-28T12:00:00.000Z')
+
+  // O que o webhook cria quando um desconhecido escreve: plano_status cai no
+  // default `trial_expirado` e ultimo_acesso_em fica nulo.
+  const doWebhook = lead({
+    id: 'web1',
+    planoStatus: 'trial_expirado',
+    ultimoAcessoEm: null,
+    tags: [],
+  })
+  const doLote = lead({
+    id: 'lote1',
+    planoStatus: 'trial_expirado',
+    ultimoAcessoEm: null,
+    tags: ['rtv-lote-2026-09'],
+  })
+
+  it('sem filtro de tag, quem escreveu para o número entra junto com o lote', () => {
+    // Não é o comportamento desejado, é o RISCO documentado: por isso a tag.
+    const r = recorteReativacao([doWebhook, doLote], { planoStatus: 'trial_expirado' }, agora)
+    expect(r.map((l) => l.id)).toEqual(['web1', 'lote1'])
+  })
+
+  it('com filtro de tag, só o lote entra', () => {
+    const r = recorteReativacao(
+      [doWebhook, doLote],
+      { planoStatus: 'trial_expirado', tag: 'rtv-lote-2026-09' },
+      agora
+    )
+    expect(r.map((l) => l.id)).toEqual(['lote1'])
+  })
+
+  it('tag que ninguém tem devolve recorte vazio, não a base inteira', () => {
+    const r = recorteReativacao([doWebhook, doLote], { tag: 'lote-que-nao-existe' }, agora)
+    expect(r).toEqual([])
+  })
+})

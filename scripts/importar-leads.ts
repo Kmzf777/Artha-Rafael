@@ -14,6 +14,13 @@ import { readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 import { telNorm11, toBrazilPhone } from '../src/lib/phoneUtils'
 
+/**
+ * O lote. É ele que o recorte da campanha usa, e não `plano_status` — o webhook
+ * cria lead com `plano_status` no default `trial_expirado`, então filtrar por
+ * estado alcançaria todo mundo que já escreveu para o número.
+ */
+const TAG_LOTE = 'rtv-lote-2026-09'
+
 const caminho = process.argv[2]
 
 if (process.env.IMPORT_CONFIRMO !== 'sim') {
@@ -72,8 +79,16 @@ async function main(): Promise<void> {
     else aceitos.push(linha)
   }
 
-  // `tel_norm` é coluna gerada, com índice único (`leads_tel_norm_uk`). O
-  // upsert conflita por ela, então reimportar o mesmo arquivo não duplica.
+  // `tel_norm` é coluna gerada, com índice único (`leads_tel_norm_uk`).
+  //
+  // `ignoreDuplicates: true` PULA quem já existe, em vez de sobrescrever. Com
+  // `false`, reimportar o arquivo devolvia `stage` para 'novo' em quem o bot já
+  // tinha qualificado e reescrevia `tags` por cima do que o bot gravou. Pular é
+  // a escolha certa num script que o próprio comentário convida a rodar de novo.
+  //
+  // O custo: um lead da planilha que JÁ existia (porque escreveu para o número
+  // antes) não recebe a tag do lote e fica fora da campanha. É por isso que os
+  // pulados são contados e impressos — quem opera decide o que fazer com eles.
   const registros = aceitos.map((linha) => ({
     nome: linha.nome,
     // Guarda com DDI, a forma que a Meta entrega. `tel_norm` deriva sozinha.
@@ -84,11 +99,12 @@ async function main(): Promise<void> {
     plano_status: 'trial_expirado',
     ultimo_acesso_em: null,
     ficticio: false,
+    tags: [TAG_LOTE],
   }))
 
   const { data, error } = await db
     .from('leads')
-    .upsert(registros, { onConflict: 'tel_norm', ignoreDuplicates: false })
+    .upsert(registros, { onConflict: 'tel_norm', ignoreDuplicates: true })
     .select('id')
 
   if (error) {
@@ -96,10 +112,21 @@ async function main(): Promise<void> {
     process.exit(1)
   }
 
+  // Com `ignoreDuplicates: true`, `data` traz só quem foi de fato inserido.
+  const gravados = data?.length ?? 0
+  const pulados = aceitos.length - gravados
+
   console.log('')
-  console.log(`Linhas no arquivo:  ${linhas.length}`)
-  console.log(`Gravados:           ${data?.length ?? 0}`)
-  console.log(`Recusados:          ${recusados.length}`)
+  console.log(`Linhas no arquivo:      ${linhas.length}`)
+  console.log(`Gravados:               ${gravados}`)
+  console.log(`Já existiam (pulados):  ${pulados}`)
+  console.log(`Recusados:              ${recusados.length}`)
+
+  if (pulados > 0) {
+    console.log('')
+    console.log(`NÃO RECEBERAM a tag ${TAG_LOTE} — já existiam no banco.`)
+    console.log('Ficam FORA da campanha deste lote. Trate à mão.')
+  }
 
   if (recusados.length > 0) {
     console.log('')
@@ -108,6 +135,9 @@ async function main(): Promise<void> {
     console.log('')
     console.log('Trate à mão ou confirme o número com o cliente. Não some com eles.')
   }
+
+  console.log('')
+  console.log(`Para disparar só este lote:  filtro { "tag": "${TAG_LOTE}" }`)
   console.log('')
 }
 

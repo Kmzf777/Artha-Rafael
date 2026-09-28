@@ -76,6 +76,17 @@ export type FiltroRecorte = {
   diasSemAcesso?: FaixaSemAcesso
   planoStatus?: PlanoStatus | 'todos'
   segmento?: Segmento | 'todos'
+  /**
+   * Recorta um LOTE nomeado, e não um estado do lead.
+   *
+   * Existe porque nenhum dos outros três distingue quem foi importado de quem
+   * o webhook criou. O webhook insere lead com `plano_status` no default do
+   * schema, que é `trial_expirado`, e `ultimo_acesso_em` nulo — ou seja, todo
+   * número que um dia escreveu para a Artha entra num recorte de trial
+   * expirado, indistinguível de uma base importada. Sem esta linha, um disparo
+   * de marketing para "os 12 do lote" alcança a caixa de entrada inteira.
+   */
+  tag?: string
 }
 
 /**
@@ -92,6 +103,7 @@ export function recorteReativacao(leads: Lead[], filtro: FiltroRecorte, agora: D
     if (diasSemAcesso(lead, agora) < piso) return false
     if (plano !== 'todos' && lead.planoStatus !== plano) return false
     if (segmento !== 'todos' && lead.segmento !== segmento) return false
+    if (filtro.tag && !lead.tags.includes(filtro.tag)) return false
     return true
   })
 }
