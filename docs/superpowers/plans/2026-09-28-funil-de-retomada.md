@@ -1200,7 +1200,13 @@ Expected: a Meta devolve um id. Aguardar `APPROVED` antes do passo 5.
 - [ ] **Step 5: Disparo de teste para o número do gestor**
 
 Crie a campanha por `POST /api/campanhas` com
-`{ template: 'mkt_rtv_isencao_01', filtro: { planoStatus: 'trial_expirado' }, variaveisPorLead: ['nome'] }`
+`{ template: 'mkt_rtv_isencao_01', filtro: { tag: 'rtv-lote-2026-09' }, variaveisPorLead: ['nome'] }`
+
+> **Corrigido em 2026-09-28, depois da revisão final.** Este passo dizia
+> `filtro: { planoStatus: 'trial_expirado' }`, e isso alcança **todo número que
+> já escreveu para a Artha** — o webhook cria lead com `plano_status` no default
+> do schema, que é exatamente `trial_expirado`. O recorte por tag é o único que
+> separa os 12 importados. Ver a seção correspondente no `ROADMAP.md`.
 restrita a um lead de teste, drene com `POST /api/fila/processar`, e confira:
 
 - [ ] O template chega com o primeiro nome preenchido e os três botões.

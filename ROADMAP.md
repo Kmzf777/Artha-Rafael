@@ -208,6 +208,55 @@ Se o cliente mudar a oferta, `TEMPLATE_RTV.corpo` muda à mão.
 atendimento, porque `esperandoResposta` conta toda mensagem do bot. Consertar
 mexeria em régua de três telas por 1 card de 12.
 
+### Três quebras que a revisão final achou, e que o verde escondia
+
+`lint`, `tsc`, `build` e 301 testes estavam verdes, e o código estava errado nos
+três pontos abaixo. Ficam registrados porque o modo de falha é o que interessa.
+
+**O ramo `rtv` não tinha estado terminal.** O bot respondia "me conta o que
+travou", a pessoa escrevia, e levava a P1 de segmentação de volta — o mesmo
+turno queimado que esta onda existe para consertar, deslocado um passo. A régua
+de "roteiro encerrado" não pegava por duas razões independentes: o corte dela é
+a primeira fala do bot, e numa campanha o toque vem ANTES dela; e
+`ehRespostaTerminal` identifica terminal por id DESCONHECIDO, coisa que um id
+`rtv:` deixou de ser ao entrar em `ehIdConhecido`. Os testes 30–34 paravam todos
+no toque do botão; ninguém testou o turno seguinte.
+
+**O recorte alcançava a caixa de entrada inteira.** `acharOuCriarLeadPorTelefone`
+insere só `nome`, `telefone`, `stage` e `segmento`; o resto cai no default do
+schema, que é `plano_status = 'trial_expirado'` e `ultimo_acesso_em` nulo. Logo
+todo número que um dia escreveu para a Artha entrava em
+`recorteReativacao({ planoStatus: 'trial_expirado' })`, indistinguível dos 12
+importados. `FiltroRecorte` ganhou `tag`, e o importador marca o lote.
+
+**O opt-out dependia de o bot ter permissão de falar.** A gravação morava em
+`executar.ts`, atrás de `if (passo.acao === 'calar') return`, e o bot cala para
+sempre em conversa onde um operador já respondeu. Quem já falou com o
+atendimento apertava "Não quero receber", nada gravava, e a campanha seguinte o
+incluía de novo. Numa base de trial expirado esse é o caso comum. A gravação
+passou para `POST /api/webhook`, único lugar que vê todo inbound.
+
+### Como disparar este lote, e só ele
+
+```
+POST /api/campanhas
+{ "nome": "...", "template": "mkt_rtv_isencao_01",
+  "filtro": { "tag": "rtv-lote-2026-09" },
+  "variaveisPorLead": ["nome"] }
+```
+
+**Filtrar por `planoStatus` alcança gente que não é do lote.** A tag é escrita
+pelo `scripts/importar-leads.ts` e é a única coisa que separa os importados de
+quem chegou pelo webhook.
+
+O importador usa `ignoreDuplicates: true`: quem já existia é pulado inteiro e
+**não** ganha a tag, ficando fora da campanha. É deliberado — sem isso,
+reimportar devolvia `stage` para `novo` em quem o bot já tinha qualificado. O
+script imprime quantos pulou.
+
+**Limitação conhecida:** opt-out é por `button_id`, não por texto. Quem escrever
+"não quero mais receber" em vez de apertar o botão não é marcado.
+
 **Pergunta aberta ao cliente, que bloqueia o disparo e não o código:** o cupom
 tem mecanismo? Ele disse "podemos oferecer", que é intenção. Por isso o
 `rtv:voltar` entrega a humano em vez de afirmar que a isenção já está aplicada.
