@@ -18,7 +18,7 @@
 // `componentesDeBotao`, resolvido pelo nome do template, sem dado da fila.
 import 'server-only'
 import { telNorm11, toBrazilPhone } from '@/lib/phoneUtils'
-import { componentesDeBotao, type ComponenteEnvio } from '@/lib/templates'
+import { componentesDeBotao, renderizarCorpo, type ComponenteEnvio } from '@/lib/templates'
 import { podeDisparar } from '@/lib/regras'
 import { env } from '@/server/env'
 import { enviarTemplate, MetaError } from '@/server/meta/client'
@@ -30,6 +30,7 @@ import {
 } from '@/server/repo/campanhas'
 import { buscarLead } from '@/server/repo/leads'
 import { conversasIniciadasEm24h, inserirMensagem } from '@/server/repo/mensagens'
+import { listarTemplates } from '@/server/repo/templates'
 
 const LOTE = 20
 
@@ -71,6 +72,11 @@ export async function processarFila(): Promise<ResultadoFila> {
   }
 
   const reservados = await reservarAgendamentos(Math.min(LOTE, folga))
+
+  // Uma leitura por LOTE, não por agendamento: o corpo é o mesmo para todos os
+  // envios da mesma campanha, e buscar por lead multiplicaria a consulta por 20.
+  const corpoPorNome = new Map((await listarTemplates()).map((t) => [t.nome, t.corpo]))
+
   let enviados = 0
   let falhas = 0
 
@@ -141,6 +147,16 @@ export async function processarFila(): Promise<ResultadoFila> {
       const wamid = resposta.messages[0]?.id ?? null
       await marcarAgendamentoEnviado(a.id, wamid ?? '')
 
+      // O TEXTO QUE O LEAD RECEBEU, não o nome do template. O CRM existe para
+      // mostrar a conversa como ela aconteceu, e `mkt_rtv_isencao_01` numa bolha
+      // não é conversa nenhuma. É também o que permite a timeline casar o
+      // disparo com o template cadastrado e desenhar os botões.
+      //
+      // Template ausente do cache local (sync não rodado) cai no nome, como
+      // antes. Pior que o ideal, igual ao presente, nunca mentira.
+      const molde = corpoPorNome.get(a.template)
+      const conteudo = molde ? renderizarCorpo(molde, variaveis) : a.template
+
       // `phone` guarda os 11 dígitos canônicos, a mesma forma que o webhook
       // grava no inbound. Gravar aqui o telefone com DDI racharia a conversa em
       // dois cards, porque `conversationKey` compara a string crua. Spec §2.1.
@@ -150,7 +166,7 @@ export async function processarFila(): Promise<ResultadoFila> {
         phone: canonico,
         phone_id: env.phoneNumberId,
         message_type: 'template',
-        content: a.template,
+        content: conteudo,
         direction: 'outbound' as const,
         created_at: new Date().toISOString(),
         status: 'enviado' as const,
