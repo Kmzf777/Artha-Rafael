@@ -160,6 +160,8 @@ function paraFio(msg: Message, lead: Lead): MensagemUI {
     media_mime_type: extra?.mime ?? MIME_POR_TIPO[msg.tipo] ?? null,
     media_storage_path: null,
     reply_to_message_id: extra?.respondeA ?? null,
+    enviado_por: null,
+    button_id: null,
     status: msg.status ?? null,
   }
 }

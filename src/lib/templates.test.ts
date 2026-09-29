@@ -4,6 +4,7 @@ import {
   componentesDeBotao,
   contarVariaveis,
   parametrosDoTemplate,
+  renderizarCorpo,
   validarTemplate,
   type RascunhoTemplate,
 } from './templates'
@@ -154,5 +155,30 @@ describe('componentesDeBotao', () => {
     // assina "Lúcia" — disparar ele à mão tem de falhar alto.
     expect(() => componentesDeBotao('mkt_rtv_voce_sabe_01')).toThrow(/TEMPLATES_RTV/)
     expect(() => componentesDeBotao('mkt_rtv_qualquer_coisa')).toThrow(/TEMPLATES_RTV/)
+  })
+})
+
+describe('renderizarCorpo', () => {
+  it('substitui a variável pelo valor', () => {
+    expect(renderizarCorpo('Oi, {{1}}. Tudo bem?', ['Rafael'])).toBe('Oi, Rafael. Tudo bem?')
+  })
+
+  it('substitui por posição, não por ordem de aparição', () => {
+    expect(renderizarCorpo('{{2}} e {{1}}', ['um', 'dois'])).toBe('dois e um')
+  })
+
+  it('variável sem valor fica literal no texto', () => {
+    // Apagar produziria um texto que NÃO é o que o lead recebeu, e a tela existe
+    // para mostrar o que ele viu. Um {{2}} visível é sinal de campanha mal
+    // montada, e esconder isso não conserta nada.
+    expect(renderizarCorpo('Oi, {{1}}. Veja {{2}}.', ['Rafael'])).toBe('Oi, Rafael. Veja {{2}}.')
+  })
+
+  it('corpo sem variável volta igual', () => {
+    expect(renderizarCorpo('Sem variável nenhuma.', ['Rafael'])).toBe('Sem variável nenhuma.')
+  })
+
+  it('lista vazia não altera nada', () => {
+    expect(renderizarCorpo('Oi, {{1}}.', [])).toBe('Oi, {{1}}.')
   })
 })

@@ -324,6 +324,59 @@ contra o Postgres agora incluídos e verdes.
 `0002` existem, mas `leads.optout_em` não. Sem ela `marcarOptout` estoura com
 `42703` e o botão "Não quero receber" não marca ninguém.
 
+## Concluído (2026-09-29) — botões na conversa
+
+O gestor: *"em conversas, as mensagens enviadas pelo bot de botão não mostra as
+opções de botão que foram enviadas ao lead, para quem está usando o crm fica
+confuso"*. Spec:
+`docs/superpowers/specs/2026-09-29-botoes-na-conversa-design.md`.
+
+Eram **dois** defeitos com o mesmo sintoma. O bot nunca gravou os botões —
+`gravarSaida` grava só `content`. E o disparo gravava o NOME do template em
+`content`, então a bolha mostraria `mkt_rtv_isencao_01` como texto da mensagem, e
+o casamento com o template cadastrado comparava corpo contra nome e nunca achava.
+
+**Os botões são derivados do roteiro, não gravados.** O corpo de uma pergunta do
+bot é string literal exata, então casar é igualdade, não heurística — e derivar
+conserta retroativamente todo o histórico que já está no banco, coisa que gravar
+no envio não faria. A falha é muda, nunca errada: corpo que não casa devolve
+bolha sem botão, que é o comportamento anterior.
+
+**Uma ambiguidade real teve de ser resolvida.** Os dois ramos do nível 2 têm
+`corpoRepetido` idêntico ("O que você quer saber?") e botões diferentes. Casar só
+por texto mostraria os botões da Dhana para quem está na Artha. A desambiguação
+usa o último `p1:*` respondido antes da bolha, o mesmo sinal que `proximoPasso`
+carrega como `idP1`. O par de testes 3/4 foi validado por mutação: trocando a
+regra por "devolve a primeira candidata", só eles ficam vermelhos.
+
+**O clicado casa por id no caminho do bot, por texto no de template.** Id é
+contrato, título é copy. A assimetria é do que a Meta entrega: o toque em quick
+reply de template chega com o título como conteúdo, e o template cadastrado só
+guarda títulos. Consequência: renomear um botão num template aprovado desmarca
+retroativamente os toques antigos dele. O caminho do bot não sofre disso.
+
+**A fila passa a gravar o texto renderizado.** `renderizarCorpo` substitui as
+variáveis, e variável sem valor fica literal — apagá-la produziria um texto que
+não é o que o lead recebeu. Quando `variaveis` vem vazio, o `{{1}}` aparece na
+bolha, e está certo: `componentes` omite o bloco `body` nesse caso, então foi
+isso que a Meta recebeu.
+
+**Contrato de dado:** mensagem antiga de disparo continua com o nome, nova com o
+texto. A régua resolve cada uma pelo que ela tem, e não há migração de histórico.
+
+### O que NÃO está provado
+
+`npm run lint`, `npx tsc --noEmit` e `npm run build` limpos; `npm test` dá **359
+passando e 1 pulado**. A lógica tem 13 testes próprios, um deles validado por
+mutação.
+
+**A tela não foi verificada com dado real.** Rodar a régua contra as linhas do
+banco devolveu zero bolhas com botão — corretamente, porque o `!reset` de
+2026-09-28 apagou todas as mensagens do bot e o que sobrou é um disparo simulado
+com `enviado_por` nulo, que a guarda de autoria exclui de propósito. Não existe
+hoje, no banco, uma pergunta de bot para renderizar. Provar exige o bot voltar a
+perguntar, e o painel em produção servir esta branch.
+
 ## [NA FILA]
 
 - **B5 — base real e autenticação.** Depende do CSV dos 612 inativos, ainda

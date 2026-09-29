@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { MessageSquareText } from 'lucide-react'
 import MessageBubble from '@/components/MessageBubble'
 import { Skeleton } from '@/components/ui/skeleton'
+import { mapearBotoes } from '@/lib/botoesDaConversa'
 import type { Message } from '@/lib/conversationTypes'
 import { formatSectionDate } from '@/lib/format'
 import { agruparPorData, localizarNaoLidas } from '@/lib/timeline'
@@ -19,44 +20,6 @@ type Props = {
   templates: Template[]
   carregando: boolean
   onResponder: (m: Message) => void
-}
-
-/** O corpo do template tem exatamente um `{{1}}`; o resto casa literalmente. */
-function corpoCasa(corpo: string, conteudo: string): boolean {
-  const partes = corpo.split('{{1}}')
-  if (partes.length !== 2) return corpo === conteudo
-  const [inicio, fim] = partes
-  return (
-    conteudo.length >= inicio.length + fim.length &&
-    conteudo.startsWith(inicio) &&
-    conteudo.endsWith(fim)
-  )
-}
-
-type Disparo = { template: Template; clicado: string | null }
-
-/**
- * Liga cada bolha de template ao template cadastrado e ao botão que o lead
- * clicou. O clique chega como uma mensagem `button` cujo conteúdo é o rótulo do
- * botão — é assim que a Meta entrega, e é o que faz a sequência de reativação
- * ficar legível na tela.
- */
-function mapearDisparos(mensagens: Message[], templates: Template[]): Map<string, Disparo> {
-  const mapa = new Map<string, Disparo>()
-  mensagens.forEach((msg, i) => {
-    if (msg.message_type !== 'template' || !msg.content) return
-    const template = templates.find((t) => corpoCasa(t.corpo, msg.content!))
-    if (!template) return
-    const proximoInbound = mensagens.slice(i + 1).find((m) => m.direction === 'inbound')
-    const clicado =
-      proximoInbound?.message_type === 'button' &&
-      proximoInbound.content &&
-      template.botoes.includes(proximoInbound.content)
-        ? proximoInbound.content
-        : null
-    mapa.set(msg.id, { template, clicado })
-  })
-  return mapa
 }
 
 /**
@@ -88,7 +51,7 @@ export default function MessageTimeline({
   }, [conversaKey, mensagens.length])
 
   const grupos = useMemo(() => agruparPorData(mensagens), [mensagens])
-  const disparos = useMemo(() => mapearDisparos(mensagens, templates), [mensagens, templates])
+  const botoes = useMemo(() => mapearBotoes(mensagens, templates), [mensagens, templates])
   const porId = useMemo(() => new Map(mensagens.map((m) => [m.id, m])), [mensagens])
 
   const { primeiraNaoLidaId, quantidade } = useMemo(() => {
@@ -126,7 +89,7 @@ export default function MessageTimeline({
             </h3>
 
             {grupo.msgs.map((msg) => {
-              const disparo = disparos.get(msg.id)
+              const daBolha = botoes.get(msg.id)
               return (
                 <div key={msg.id} className="flex flex-col gap-2">
                   {msg.id === primeiraNaoLidaId && quantidade > 0 && (
@@ -141,9 +104,9 @@ export default function MessageTimeline({
                   <MessageBubble
                     mensagem={msg}
                     status={statusDe(msg.id)}
-                    botoesTemplate={disparo?.template.botoes}
-                    nomeTemplate={disparo?.template.nome ?? null}
-                    botaoClicado={disparo?.clicado ?? null}
+                    botoes={daBolha?.rotulos}
+                    nomeTemplate={daBolha?.nomeTemplate ?? null}
+                    botaoClicado={daBolha?.clicado ?? null}
                     citada={msg.reply_to_message_id ? porId.get(msg.reply_to_message_id) ?? null : null}
                     onResponder={onResponder}
                   />

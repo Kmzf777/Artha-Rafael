@@ -15,6 +15,8 @@ const msg = (over: Partial<Message>): Message =>
     direction: 'inbound',
     created_at: '2026-07-10T12:00:00Z',
     raw_payload: null,
+    enviado_por: null,
+    button_id: null,
     ...over,
   }) as Message
 
