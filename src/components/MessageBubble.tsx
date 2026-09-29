@@ -22,8 +22,8 @@ import type { DeliveryStatus } from '@/mock/types'
 export type MessageBubbleProps = {
   mensagem: Message
   status: DeliveryStatus | null
-  /** Botões do template disparado — só quando a bolha é `template`. */
-  botoesTemplate?: readonly string[]
+  /** Rótulos dos botões que esta bolha ofereceu, do template ou do roteiro. */
+  botoes?: readonly string[]
   /** Nome do template cadastrado na Meta, para o sobrescrito da bolha. */
   nomeTemplate?: string | null
   /** Qual dos botões o lead clicou, quando clicou. */
@@ -36,7 +36,7 @@ export type MessageBubbleProps = {
 export default function MessageBubble({
   mensagem,
   status,
-  botoesTemplate,
+  botoes,
   nomeTemplate,
   botaoClicado,
   citada,
@@ -105,12 +105,12 @@ export default function MessageBubble({
           </span>
         </div>
 
-        {/* Botões do template: cada linha é um botão de resposta rápida da Meta.
-            O que o lead clicou aparece marcado; os demais recuam por opacidade,
-            não por cor — a régua de estado sem matiz vale aqui também. */}
-        {ehTemplate && botoesTemplate && botoesTemplate.length > 0 && (
+        {/* Os botões que a bolha ofereceu — quick reply de template ou botão do
+            roteiro. O que o lead tocou aparece marcado; os demais recuam por
+            opacidade, não por cor — a régua de estado sem matiz vale aqui. */}
+        {botoes && botoes.length > 0 && (
           <ul className="flex flex-col">
-            {botoesTemplate.map((rotulo) => {
+            {botoes.map((rotulo) => {
               const clicado = rotulo === botaoClicado
               return (
                 <li key={rotulo} className={cn('border-t', risco)}>
