@@ -20,6 +20,17 @@ export type Message = {
   media_mime_type: string | null
   media_storage_path: string | null
   reply_to_message_id: string | null
+  /**
+   * Autoria da saída: nome do humano, `'bot'`, ou `null` quando ninguém está
+   * identificado. Já vinha do `select('*')` e não estava declarado.
+   */
+  enviado_por: string | null
+  /**
+   * Id do botão tocado. Só em mensagem de entrada.
+   *   interactive.button_reply.id  → botão do bot
+   *   button.payload               → quick reply de template
+   */
+  button_id: string | null
 }
 
 export type Conversation = {

@@ -77,6 +77,8 @@ export function useMessageSender({ conv, acrescentar }: Args) {
         media_mime_type: extra.mime ?? null,
         media_storage_path: null,
         reply_to_message_id: extra.respondeA ?? null,
+        enviado_por: null,
+        button_id: null,
         status: 'enviado',
       }
       acrescentar(enviada)
