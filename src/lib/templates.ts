@@ -32,6 +32,21 @@ export function contarVariaveis(texto: string): number {
   return indices(texto).length
 }
 
+/**
+ * O corpo com as variáveis substituídas — o texto que o lead de fato recebeu.
+ *
+ * Existe porque a fila precisa gravar em `messages.content` o que saiu, e não o
+ * nome do template. Ver spec 2026-09-29 §5.
+ *
+ * VARIÁVEL SEM VALOR FICA COMO ESTÁ. Apagá-la produziria um texto que não é o
+ * que o lead viu, e a tela de conversa existe para mostrar a conversa como ela
+ * aconteceu. Um `{{2}}` visível é sinal de campanha mal montada, e escondê-lo
+ * não conserta a campanha.
+ */
+export function renderizarCorpo(corpo: string, variaveis: string[]): string {
+  return corpo.replace(VARIAVEL, (bruto, n: string) => variaveis[Number(n) - 1] ?? bruto)
+}
+
 export function validarTemplate(t: RascunhoTemplate): string[] {
   const erros: string[] = []
 
