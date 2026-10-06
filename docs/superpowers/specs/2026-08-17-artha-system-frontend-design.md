@@ -3,7 +3,7 @@
 **Data:** 2026-08-17
 **Status:** Aprovada (gestor aprovou spec e plano antecipadamente)
 **Plano:** `docs/superpowers/plans/2026-08-17-artha-system-frontend.md`
-**Origem:** reunião Vistra.ia × Rafael Recidive (`transcricao.md`, `resumo-transcricao.md`) + `DESIGN.md`
+**Origem:** reunião Vistra.ia × Rafael Recidive (`resumo/2026-08-10-reuniao-1-transcricao.md`, `resumo/2026-08-10-reuniao-1-resumo.md`) + `DESIGN.md`
 
 ---
 

@@ -7,7 +7,7 @@
 
 ## 1. De onde isto vem
 
-A reunião de 10/08 (`transcricao.md`) define o produto duas vezes.
+A reunião de 10/08 (`resumo/2026-08-10-reuniao-1-transcricao.md`) define o produto duas vezes.
 
 A primeira é a demonstração ao vivo da Mar Azul, em 00:13:40: *"a gente faz o
 disparo… o cliente vai apertando os botões, como não usa IA… e já saiu o lead

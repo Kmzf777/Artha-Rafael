@@ -16,7 +16,7 @@ de dados das telas.
 |-- next.config.ts · postcss.config.mjs · tailwind.config.cjs
 |-- eslint.config.mjs · tsconfig.json · vitest.config.ts
 |-- .env.local.example     # variáveis de servidor; NEXT_PUBLIC_SUPABASE_URL é a única pública
-|-- transcricao.md · resumo-transcricao.md   # reunião de origem
+|-- resumo/                                  # reuniões e o resumo do projeto
 |-- docs/superpowers/
 |   |-- specs/2026-08-17-artha-system-frontend-design.md
 |   |-- specs/2026-08-20-artha-backend-real-design.md   # B1+B2+B3 — este recorte
