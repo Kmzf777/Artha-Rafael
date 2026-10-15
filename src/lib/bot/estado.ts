@@ -13,11 +13,8 @@ import {
   ehIdConhecido,
   ehIdP1,
   ehIdP2,
-  ehIdRtv1,
-  ehIdRtv2,
-  ehTerminalRtv,
+  ehIdRtv,
   perguntaP2,
-  perguntaRtv2,
   type Pergunta,
 } from './roteiro'
 
@@ -99,8 +96,8 @@ export function proximoPasso(mensagens: MensagemBot[]): Passo {
   const ultima = ms[ms.length - 1]
   if (ultima.direction !== 'inbound') return CALAR
 
-  // RESPONDIDO UM TERMINAL DO RAMO, O ROTEIRO ACABOU. `rtv:voltar` não conta:
-  // ele ABRE a triagem, e o roteiro só acaba quando ela é respondida.
+  // RESPONDIDO UM TERMINAL DO RAMO, O ROTEIRO ACABOU. Os três botões do
+  // template são terminais desde 2026-10-15.
   //
   // A régua de "roteiro encerrado" mais abaixo não serve aqui, por duas razões
   // independentes. O corte dela é a primeira fala do bot, e numa campanha o
@@ -108,44 +105,22 @@ export function proximoPasso(mensagens: MensagemBot[]): Passo {
   // `ehRespostaTerminal` identifica terminal por id DESCONHECIDO, coisa que um
   // id `rtv:` deixou de ser quando entrou em `ehIdConhecido`.
   //
-  // Sem isto, quem apertou "Tive um problema", ouviu "me conta o que travou" e
-  // contou, recebia a p1 de segmentação de volta. E quem pediu para sair
-  // recebia menu de vendas ao responder. Vem antes da porta de campanha para
-  // que o segundo toque no mesmo botão também cale, em vez de repetir a
-  // resposta.
-  //
-  // `ehTerminalRtv`, e não `ehIdRtv`: `rtv:voltar` ABRE a triagem. Contá-lo aqui
-  // faria o toque no template calar o bot no meio da própria pergunta que ele
-  // acabou de fazer. Spec 2026-09-28 §5.2a.
-  if (ms.slice(0, -1).some((m) => m.direction === 'inbound' && ehTerminalRtv(m.button_id))) {
+  // Sem isto, quem apertou "Preciso de ajuda" e contou o que houve recebia a p1
+  // de segmentação de volta. E quem pediu para sair recebia menu de vendas ao
+  // responder. Vem antes da porta de campanha para que o segundo toque no mesmo
+  // botão também cale, em vez de repetir a resposta.
+  if (ms.slice(0, -1).some((m) => m.direction === 'inbound' && ehIdRtv(m.button_id))) {
     return CALAR
   }
 
-  // PORTA DE CAMPANHA. Spec 2026-09-26 §5.2.
+  // PORTA DE CAMPANHA. Spec 2026-09-26 §5.2, nível único desde 2026-10-15.
   //
   // Vem antes do portão de primeiro contato de propósito. O disparo grava
   // autoria nula, então `ehDoBot` é falso e o portão abaixo trataria este
   // inbound como primeiro contato — devolvendo a P1 de segmentação para quem
   // acabou de apertar "Quero voltar". O turno mais quente da campanha ia
   // embora perguntando o que a planilha já responde.
-  //
-  // Dois níveis, como a porta orgânica. O botão do template ou ABRE a triagem
-  // (`rtv:voltar`) ou encerra ali mesmo — e é `perguntaRtv2` que decide qual,
-  // do mesmo jeito que `perguntaP2` decide para a p1.
-  // O `rtv:voltar` pendente, pelo mesmo `reduce` que deriva `idP1` mais abaixo.
-  // Vem antes da porta porque a resposta da triagem tem de carregar junto qual
-  // botão do template a abriu.
-  const idRtv1 = ms.reduce<string | null>(
-    (acc, m) => (ehIdRtv1(m.button_id) ? m.button_id : acc),
-    null
-  )
-
-  if (ehIdRtv2(ultima.button_id)) {
-    return { acao: 'encerrar', idP1: idRtv1, idP2: ultima.button_id, comFecho: true }
-  }
-  if (ehIdRtv1(ultima.button_id)) {
-    const triagem = perguntaRtv2(ultima.button_id as string)
-    if (triagem) return { acao: 'perguntar', pergunta: triagem }
+  if (ehIdRtv(ultima.button_id)) {
     return { acao: 'encerrar', idP1: ultima.button_id, idP2: null, comFecho: true }
   }
 
@@ -216,13 +191,6 @@ export function proximoPasso(mensagens: MensagemBot[]): Passo {
     return { acao: 'encerrar', idP1, idP2: null, comFecho: false }
   }
 
-  // A triagem vem primeiro: quem parou nela não tem `idP1` nenhum, porque
-  // `rtv:voltar` não é id de p1 — e sem esta linha o fallback devolvia a p1 de
-  // segmentação para quem estava no meio da campanha. Spec §5.2c.
-  const pendente = idRtv1
-    ? (perguntaRtv2(idRtv1) ?? P1)
-    : idP1
-      ? (perguntaP2(idP1) ?? P1)
-      : P1
+  const pendente = idP1 ? (perguntaP2(idP1) ?? P1) : P1
   return { acao: 'repetir', pergunta: pendente }
 }

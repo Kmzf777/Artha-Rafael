@@ -14,7 +14,6 @@ import {
   P1,
   P2_POR_RAMO,
   REPETICAO,
-  RTV2,
   type Botao,
   type Pergunta,
 } from './bot/roteiro'
@@ -30,7 +29,7 @@ export type BotoesDaBolha = {
 }
 
 /** Toda pergunta que o bot sabe fazer. DERIVADA, nunca escrita à mão. */
-const PERGUNTAS: Pergunta[] = [P1, ...Object.values(P2_POR_RAMO), RTV2]
+const PERGUNTAS: Pergunta[] = [P1, ...Object.values(P2_POR_RAMO)]
 
 /** Corpo da primeira vez. Os corpos são distintos entre si. */
 const POR_CORPO = new Map(PERGUNTAS.map((p) => [p.corpo, p]))

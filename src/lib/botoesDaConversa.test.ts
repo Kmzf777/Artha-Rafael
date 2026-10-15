@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AUTOR_BOT, P1, P2_POR_RAMO, REPETICAO, RTV2 } from './bot/roteiro'
+import { AUTOR_BOT, P1, P2_POR_RAMO, REPETICAO } from './bot/roteiro'
 import { mapearBotoes } from './botoesDaConversa'
 import type { Message } from './conversationTypes'
 import type { Template } from '@/mock/types'
@@ -116,18 +116,13 @@ describe('mapearBotoes — pergunta do bot', () => {
     expect(mapearBotoes([p, msg({ content: 'escrevi à mão' })], []).get(p.id)?.clicado).toBeNull()
   })
 
-  it('10. a triagem do ramo de campanha também é reconhecida', () => {
-    const p = pergunta(RTV2.corpo)
-    expect(mapearBotoes([p], []).get(p.id)?.rotulos).toEqual(RTV2.botoes.map((b) => b.titulo))
-  })
-
   it('11. os corpos de primeira vez são distintos entre si', () => {
     // O índice é um Map por corpo. Se duas perguntas passarem a ter o mesmo
     // corpo, a última vence EM SILÊNCIO e a bolha mostra os botões da outra —
     // que é exatamente o modo de falha que a desambiguação do `corpoRepetido`
     // existe para evitar. Este teste vigia o outro índice, o que hoje não tem
     // colisão e por isso não tem defesa em runtime.
-    const corpos = [P1, ...Object.values(P2_POR_RAMO), RTV2].map((p) => p.corpo)
+    const corpos = [P1, ...Object.values(P2_POR_RAMO)].map((p) => p.corpo)
     expect(new Set(corpos).size).toBe(corpos.length)
   })
 })

@@ -104,60 +104,18 @@ export const RTV_IDS = RTV_BOTOES.map((b) => b.id)
 export const ID_OPTOUT = 'rtv:sair'
 
 /**
- * A TRIAGEM. Spec 2026-09-28 §3.3.
- *
- * Um toque não é qualificação. O cliente escreveu que a base "não comprou por
- * algum motivo" e que ele não sabe qual — esta pergunta é a que ele não
- * conseguiu fazer, e cada resposta arma a fala de abertura dele: preço é
- * objeção que a isenção resolve, conexão é suporte que ela não resolve, e
- * dúvida é falta de entendimento do produto.
+ * O link de inscrição com o cupom já aplicado, mandado pelo Rafael. Vazio até
+ * ele mandar, e há um teste que fica vermelho enquanto estiver vazio: mandar
+ * https://artha.ia.br sob "já estará com o cupom aplicado" seria afirmar ao
+ * cliente uma coisa falsa. Spec 2026-10-15 §3.3.
  */
-export const RTV2: Pergunta = {
-  corpo: 'Boa. Me diz o que te segurou da primeira vez.',
-  corpoRepetido: 'O que te segurou da primeira vez?',
-  botoes: [
-    { id: 'rtv2:preco', titulo: 'Foi o preço' },
-    { id: 'rtv2:tecnico', titulo: 'Travei na conexão' },
-    { id: 'rtv2:duvida', titulo: 'Não entendi direito' },
-  ],
-}
+export const LINK_CUPOM = ''
 
-/**
- * Quem ABRE a triagem. Só `rtv:voltar`.
- *
- * Quem apertou "Tive um problema" tem um bloqueio concreto e a resposta já pede
- * que ele escreva qual; pôr um menu na frente disso é o oposto de atendimento.
- * Espelha `P2_POR_RAMO`, e é dele que `ehTerminalRtv` deriva quem fecha.
- */
-export const RTV2_POR_RTV1: Record<string, Pergunta> = { 'rtv:voltar': RTV2 }
+const IDS_RTV = new Set(RTV_IDS)
 
-const IDS_RTV1 = new Set(RTV_IDS)
-const IDS_RTV2 = new Set(RTV2.botoes.map((b) => b.id))
-
-export function ehIdRtv1(id: string | null): boolean {
-  return id !== null && IDS_RTV1.has(id)
-}
-
-export function ehIdRtv2(id: string | null): boolean {
-  return id !== null && IDS_RTV2.has(id)
-}
-
+/** Os três botões do template. Desde 2026-10-15 os três encerram o roteiro. */
 export function ehIdRtv(id: string | null): boolean {
-  return ehIdRtv1(id) || ehIdRtv2(id)
-}
-
-export function perguntaRtv2(idRtv1: string): Pergunta | null {
-  return RTV2_POR_RTV1[idRtv1] ?? null
-}
-
-/**
- * Fecha o roteiro do ramo. DERIVADO de quem abre, nunca escrito à mão: um botão
- * do nível 1 que ganhe triagem própria numa revisão futura sai desta lista
- * sozinho, em vez de continuar contando como terminal e calar o bot no meio da
- * própria pergunta.
- */
-export function ehTerminalRtv(id: string | null): boolean {
-  return ehIdRtv(id) && perguntaRtv2(id as string) === null
+  return id !== null && IDS_RTV.has(id)
 }
 
 /**
@@ -267,23 +225,12 @@ export const RESPOSTA_POR_ID: Record<string, string> = {
     'A Dhana é a plataforma que você usa para acompanhar seus clientes.\n\n' +
     'Cada um conecta as contas dele e você enxerga a carteira inteira num lugar só, sem pedir extrato para ninguém.',
 
-  // A triagem responde e entrega. Nenhuma das três afirma que a isenção já está
-  // aplicada: quem libera é gente, porque não há mecanismo de cupom confirmado
-  // pelo cliente. Spec 2026-09-26 §6.1.
-  'rtv2:preco':
-    'Entendi. Já passei para a equipe da Artha, que fecha a isenção com você e te acompanha na hora de reconectar.',
+  // Textos do Rafael (cliente), 2026-10-15. `{vocativo}` vira ", Nome" ou some.
+  // O link de `rtv:voltar` sai ANTES, em mensagem própria: ver `mensagensTerminais`.
+  'rtv:voltar':
+    'Ótimo{vocativo}. É só você clicar no link acima e fazer a sua inscrição. Já estará com o cupom aplicado. Mas o cupom é válido somente hoje, ok?',
 
-  'rtv2:tecnico':
-    'Isso a gente resolve junto. Me conta em que banco você travou, que alguém da Artha olha o seu caso.',
-
-  'rtv2:duvida':
-    'Sem problema, é pra isso que a gente está aqui. Já passei para a equipe da Artha, que te explica como funciona e responde o que faltar.',
-
-  'rtv:problema':
-    'Me conta o que travou. Pode escrever aqui mesmo.\n\n' +
-    'Alguém da Artha lê e te responde ainda hoje.',
-
-  'rtv:sair': 'Certo, não te mandamos mais nada por aqui. Obrigado pelo seu tempo.',
+  'rtv:sair': 'Obrigado pelo retorno{vocativo}. Se precisar de ajuda com as finanças, fale comigo.',
 }
 
 /**
@@ -293,7 +240,7 @@ export const RESPOSTA_POR_ID: Record<string, string> = {
  * para que esquecer de escrever uma resposta seja um teste vermelho em vez de
  * um encaminhamento silencioso.
  */
-export const IDS_QUE_ENCAMINHAM = new Set(['p1:outro', 'p2:dhana_demo', 'p2:humano'])
+export const IDS_QUE_ENCAMINHAM = new Set(['p1:outro', 'p2:dhana_demo', 'p2:humano', 'rtv:problema'])
 
 export const FECHO =
   'Perfeito, obrigado! Já passei para a equipe da Artha, e em instantes alguém te responde por aqui.'
@@ -315,11 +262,9 @@ export const TAG_POR_RESPOSTA: Record<string, string> = {
   'p2:dhana_como': 'dhana-quer-saber-como',
   'p2:dhana_demo': 'dhana-quer-demo',
   'p2:humano': 'quer-humano',
-  'rtv:problema': 'rtv-teve-problema',
+  'rtv:voltar': 'rtv-quer-voltar',
+  'rtv:problema': 'rtv-precisa-ajuda',
   'rtv:sair': 'rtv-optout',
-  'rtv2:preco': 'rtv-motivo-preco',
-  'rtv2:tecnico': 'rtv-motivo-tecnico',
-  'rtv2:duvida': 'rtv-motivo-duvida',
 }
 
 const IDS_P1 = new Set(P1.botoes.map((b) => b.id))
@@ -342,8 +287,16 @@ export function perguntaP2(idP1: string): Pergunta | null {
   return P2_POR_RAMO[idP1] ?? null
 }
 
+/** `, Nome` para quem tem nome de verdade. Lead criado sem cadastro tem `+55…`. */
+function vocativo(primeiroNome: string | null): string {
+  const nome = primeiroNome?.trim() ?? ''
+  return nome && !nome.startsWith('+') ? `, ${nome}` : ''
+}
+
 /**
- * A mensagem que fecha o roteiro. Spec §4.3.
+ * As mensagens que encerram o roteiro, em ordem. Spec §4.3. Quase sempre uma;
+ * "Quero voltar" manda o link sozinho antes da frase que diz "clicar no link
+ * acima".
  *
  * `idP2 ?? idP1` porque `p1:outro` termina no nível 1 e não tem idP2. O
  * fallback para FECHO cobre quem encaminha e qualquer id que entre na árvore sem
@@ -352,7 +305,12 @@ export function perguntaP2(idP1: string): Pergunta | null {
  * Mora aqui, e não dentro de `executar.ts`, para ser testável sem banco, sem
  * Meta e sem `server-only`.
  */
-export function mensagemTerminal(idP1: string | null, idP2: string | null): string {
+export function mensagensTerminais(
+  idP1: string | null,
+  idP2: string | null,
+  primeiroNome: string | null
+): string[] {
   const id = idP2 ?? idP1
-  return (id ? RESPOSTA_POR_ID[id] : undefined) ?? FECHO
+  const texto = ((id ? RESPOSTA_POR_ID[id] : undefined) ?? FECHO).replace('{vocativo}', vocativo(primeiroNome))
+  return id === 'rtv:voltar' ? [LINK_CUPOM, texto] : [texto]
 }

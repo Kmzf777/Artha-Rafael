@@ -13,16 +13,12 @@ import {
   IDS_QUE_ENCAMINHAM,
   FECHO,
   REPETICAO,
-  mensagemTerminal,
+  mensagensTerminais,
+  LINK_CUPOM,
   ehIdConhecido,
   RTV_IDS,
   RTV_BOTOES,
-  RTV2,
-  perguntaRtv2,
   ehIdRtv,
-  ehIdRtv1,
-  ehIdRtv2,
-  ehTerminalRtv,
   TEMPLATES_RTV,
 } from './roteiro'
 import { validarTemplate } from '../templates'
@@ -34,15 +30,13 @@ const TODAS = [P1, ...Object.values(P2_POR_RAMO)]
  * p2. DERIVADO da árvore, nunca escrito à mão: um ramo que vire terminal numa
  * revisão futura entra nesta lista sozinho, em vez de escapar em silêncio.
  *
- * O rtv entra pelos dois níveis filtrados por `ehTerminalRtv`, e não inteiro:
- * `rtv:voltar` deixou de ser terminal quando passou a abrir a triagem, e listar
- * os ids do ramo à mão faria o próximo botão que ganhar triagem continuar
- * contando como terminal.
+ * O rtv entra inteiro: os três botões do template são terminais desde
+ * 2026-10-15, quando a triagem saiu do ramo.
  */
 const TERMINAIS = [
   ...P1.botoes.map((b) => b.id).filter((id) => !(id in P2_POR_RAMO)),
   ...Object.values(P2_POR_RAMO).flatMap((p) => p.botoes.map((b) => b.id)),
-  ...[...RTV_IDS, ...RTV2.botoes.map((b) => b.id)].filter(ehTerminalRtv),
+  ...RTV_IDS,
 ]
 
 /** Travessão (U+2014) e meia-risca (U+2013). Hífen comum não conta. */
@@ -134,10 +128,10 @@ describe('saída terminal', () => {
     expect(FECHO.length).toBeLessThanOrEqual(MAX_CORPO_TEXTO)
   })
 
-  // A chave existir não basta. `mensagemTerminal` só cai no FECHO quando o valor
+  // A chave existir não basta. `mensagensTerminais` só cai no FECHO quando o valor
   // é `undefined`, então uma string vazia atravessa a checagem de cobertura, sai
   // pela Cloud API e chega no WhatsApp como mensagem em branco. É a mesma falha
-  // que `mensagemTerminal` existe para impedir, alcançada por outro lado.
+  // que `mensagensTerminais` existe para impedir, alcançada por outro lado.
   it('nenhuma resposta é vazia', () => {
     for (const [id, texto] of Object.entries(RESPOSTA_POR_ID)) {
       expect(texto.trim().length, `${id} tem resposta vazia`).toBeGreaterThan(0)
@@ -146,23 +140,51 @@ describe('saída terminal', () => {
   })
 })
 
-describe('mensagemTerminal', () => {
+describe('mensagensTerminais', () => {
   it('devolve a resposta do id de nível 2', () => {
-    expect(mensagemTerminal('p1:artha', 'p2:artha_preco')).toBe(RESPOSTA_POR_ID['p2:artha_preco'])
+    expect(mensagensTerminais('p1:artha', 'p2:artha_preco', null)).toEqual([RESPOSTA_POR_ID['p2:artha_preco']])
   })
 
   it('cai no id de nível 1 quando não há nível 2', () => {
-    expect(mensagemTerminal('p1:outro', null)).toBe(FECHO)
+    expect(mensagensTerminais('p1:outro', null, null)).toEqual([FECHO])
   })
 
   it('devolve o fecho para quem encaminha', () => {
-    expect(mensagemTerminal('p1:dhana', 'p2:dhana_demo')).toBe(FECHO)
-    expect(mensagemTerminal('p1:dhana', 'p2:humano')).toBe(FECHO)
+    expect(mensagensTerminais('p1:dhana', 'p2:dhana_demo', null)).toEqual([FECHO])
+    expect(mensagensTerminais('p1:dhana', 'p2:humano', null)).toEqual([FECHO])
+    expect(mensagensTerminais('rtv:problema', null, 'Rafael')).toEqual([FECHO])
   })
 
   it('id desconhecido cai no fecho, nunca em silêncio', () => {
-    expect(mensagemTerminal(null, null)).toBe(FECHO)
-    expect(mensagemTerminal('p1:artha', 'p2:inexistente')).toBe(FECHO)
+    expect(mensagensTerminais(null, null, null)).toEqual([FECHO])
+    expect(mensagensTerminais('p1:artha', 'p2:inexistente', null)).toEqual([FECHO])
+  })
+
+  it('Quero voltar manda o link sozinho e depois a frase, com o nome', () => {
+    expect(mensagensTerminais('rtv:voltar', null, 'Rafael')).toEqual([
+      LINK_CUPOM,
+      'Ótimo, Rafael. É só você clicar no link acima e fazer a sua inscrição. Já estará com o cupom aplicado. Mas o cupom é válido somente hoje, ok?',
+    ])
+  })
+
+  it('Não quero receber agradece pelo nome', () => {
+    expect(mensagensTerminais('rtv:sair', null, 'Rafael')).toEqual([
+      'Obrigado pelo retorno, Rafael. Se precisar de ajuda com as finanças, fale comigo.',
+    ])
+  })
+
+  it('sem nome, a frase perde o vocativo e não sobra vírgula', () => {
+    for (const nome of [null, '', '   ', '+5534999990000']) {
+      const [, frase] = mensagensTerminais('rtv:voltar', null, nome)
+      expect(frase, String(nome)).toMatch(/^Ótimo\. É só você/)
+      expect(mensagensTerminais('rtv:sair', null, nome)[0], String(nome)).toMatch(/^Obrigado pelo retorno\. Se/)
+    }
+  })
+
+  it('o placeholder {vocativo} nunca vaza', () => {
+    for (const id of Object.keys(RESPOSTA_POR_ID)) {
+      for (const m of mensagensTerminais(id, null, 'Ana')) expect(m).not.toContain('{vocativo}')
+    }
   })
 })
 
@@ -209,74 +231,40 @@ describe('ramo rtv (campanha de retomada)', () => {
     expect(ehIdConhecido('rtv:sair')).toBe(true)
   })
 
-  it('mensagemTerminal resolve um id rtv pelo idP1', () => {
-    expect(mensagemTerminal('rtv:problema', null)).toBe(RESPOSTA_POR_ID['rtv:problema'])
+  it('mensagensTerminais resolve um id rtv pelo idP1', () => {
+    expect(mensagensTerminais('rtv:sair', null, null)).toEqual([
+      'Obrigado pelo retorno. Se precisar de ajuda com as finanças, fale comigo.',
+    ])
   })
 })
 
-describe('triagem do ramo rtv', () => {
-  const IDS_RTV2 = RTV2.botoes.map((b) => b.id)
-
-  it('rtv:voltar ABRE a triagem e não é terminal', () => {
-    expect(perguntaRtv2('rtv:voltar')).toBe(RTV2)
-    expect(ehTerminalRtv('rtv:voltar')).toBe(false)
-  })
-
-  it('os outros dois do nível 1 são terminais', () => {
-    expect(ehTerminalRtv('rtv:problema')).toBe(true)
-    expect(ehTerminalRtv('rtv:sair')).toBe(true)
-  })
-
-  it('todo id da triagem é terminal', () => {
-    for (const id of IDS_RTV2) expect(ehTerminalRtv(id), id).toBe(true)
-  })
-
-  it('perguntaRtv2 devolve null para qualquer id que não abre', () => {
-    for (const id of ['rtv:problema', 'rtv:sair', 'p1:artha', ...IDS_RTV2]) {
-      expect(perguntaRtv2(id), id).toBeNull()
-    }
-  })
-
-  it('a triagem tem três botões dentro do limite de título', () => {
-    expect(RTV2.botoes).toHaveLength(MAX_BOTOES)
-    for (const b of RTV2.botoes) {
-      expect(b.titulo.length, `"${b.titulo}"`).toBeLessThanOrEqual(MAX_TITULO)
-    }
-  })
-
-  it('todo terminal do ramo tem resposta, e rtv:voltar NÃO tem', () => {
-    // Os dois lados importam. Sem o segundo, deixar a resposta velha de
-    // `rtv:voltar` para trás passaria despercebido e o bot mandaria texto E
-    // pergunta no mesmo turno.
-    for (const id of [...RTV_IDS, ...IDS_RTV2]) {
-      if (ehTerminalRtv(id)) expect(RESPOSTA_POR_ID[id], `sem resposta: ${id}`).toBeTruthy()
-    }
-    expect(RESPOSTA_POR_ID['rtv:voltar']).toBeUndefined()
-  })
-
-  it('todo terminal tem tag, e rtv:voltar não', () => {
-    for (const id of [...RTV_IDS, ...IDS_RTV2]) {
-      if (ehTerminalRtv(id)) expect(TAG_POR_RESPOSTA[id], `sem tag: ${id}`).toBeTruthy()
-    }
-    expect(TAG_POR_RESPOSTA['rtv:voltar']).toBeUndefined()
-  })
-
-  it('ehIdRtv1 e ehIdRtv2 não se sobrepõem', () => {
+describe('terminais do ramo rtv', () => {
+  it('os três botões do template são terminais e conhecidos', () => {
     for (const id of RTV_IDS) {
-      expect(ehIdRtv1(id), id).toBe(true)
-      expect(ehIdRtv2(id), id).toBe(false)
+      expect(ehIdRtv(id), id).toBe(true)
+      expect(ehIdConhecido(id), id).toBe(true)
     }
-    for (const id of IDS_RTV2) {
-      expect(ehIdRtv2(id), id).toBe(true)
-      expect(ehIdRtv1(id), id).toBe(false)
-    }
-    expect(ehIdRtv1(null)).toBe(false)
-    expect(ehIdRtv2(null)).toBe(false)
+    expect(ehIdRtv(null)).toBe(false)
+    expect(ehIdRtv('p1:artha')).toBe(false)
   })
 
-  it('ehIdConhecido cobre os dois níveis', () => {
-    expect(ehIdConhecido('rtv:voltar')).toBe(true)
-    expect(ehIdConhecido('rtv2:preco')).toBe(true)
+  it('ids da triagem antiga deixaram de existir', () => {
+    for (const id of ['rtv2:preco', 'rtv2:tecnico', 'rtv2:duvida']) {
+      expect(ehIdConhecido(id), id).toBe(false)
+      expect(RESPOSTA_POR_ID[id], id).toBeUndefined()
+      expect(TAG_POR_RESPOSTA[id], id).toBeUndefined()
+    }
+  })
+
+  it('cada botão tem a tag combinada', () => {
+    expect(TAG_POR_RESPOSTA['rtv:voltar']).toBe('rtv-quer-voltar')
+    expect(TAG_POR_RESPOSTA['rtv:problema']).toBe('rtv-precisa-ajuda')
+    expect(TAG_POR_RESPOSTA['rtv:sair']).toBe('rtv-optout')
+  })
+
+  it('Preciso de ajuda encaminha, não responde', () => {
+    expect(IDS_QUE_ENCAMINHAM.has('rtv:problema')).toBe(true)
+    expect(RESPOSTA_POR_ID['rtv:problema']).toBeUndefined()
   })
 })
 
@@ -329,8 +317,7 @@ describe('variantes de disparo', () => {
   it('nenhuma copy do ramo cita nome de persona', () => {
     const textos = [
       ...VARIANTES.map(([, t]) => t.corpo),
-      ...RTV2.botoes.map((b) => RESPOSTA_POR_ID[b.id]),
-      RTV2.corpo,
+      ...RTV_IDS.flatMap((id) => mensagensTerminais(id, null, 'Ana')),
     ]
     for (const t of textos) expect(t).not.toMatch(/L[úu]cia|Clara|LucIA/i)
   })
@@ -338,9 +325,7 @@ describe('variantes de disparo', () => {
   it('a copy do ramo segue as regras de escrita do gestor', () => {
     const textos = [
       ...VARIANTES.map(([, t]) => t.corpo),
-      RTV2.corpo,
-      RTV2.corpoRepetido,
-      ...RTV2.botoes.map((b) => RESPOSTA_POR_ID[b.id]),
+      ...RTV_IDS.flatMap((id) => mensagensTerminais(id, null, 'Ana')),
     ]
     for (const t of textos) {
       expect(t, 'sem travessão').not.toMatch(/—/)
