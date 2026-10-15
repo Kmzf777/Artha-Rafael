@@ -10,17 +10,18 @@ import 'server-only'
 import { proximoPasso } from '@/lib/bot/estado'
 import {
   AUTOR_BOT,
-  ehTerminalRtv,
+  ehIdRtv,
   ID_OPTOUT,
-  mensagemTerminal,
+  mensagensTerminais,
   REPETICAO,
   SEGMENTO_POR_P1,
   TAG_POR_RESPOSTA,
 } from '@/lib/bot/roteiro'
+import { valorDoCampo } from '@/lib/disparos'
 import { getWindowStatus } from '@/lib/janela24h'
 import type { Segmento } from '@/mock/types'
 import { enviarBotoes, enviarTexto } from '../meta/client'
-import { qualificarLead } from '../repo/leads'
+import { buscarLead, qualificarLead } from '../repo/leads'
 import { historicoParaBot, inserirMensagem } from '../repo/mensagens'
 import { db } from '../supabase'
 
@@ -94,16 +95,16 @@ export async function executarBot(gatilho: Gatilho): Promise<void> {
         ? TAG_POR_RESPOSTA[passo.idP1]
         : undefined
 
-    // QUEM QUALIFICA É O TERMINAL, não o primeiro toque. Com a triagem, o id que
-    // decide está em `idP2` — e `ehTerminalRtv` já exclui `rtv:voltar`, que abre
-    // a pergunta em vez de fechar o roteiro. Quem toca no template e abandona na
-    // triagem não é qualificado, que é o pedido inteiro desta onda.
+    // QUEM QUALIFICA É O TERMINAL, não o primeiro toque. Os três botões do
+    // template (`rtv:voltar`, `rtv:problema`, `rtv:sair`) encerram o roteiro sem
+    // pergunta de triagem; quem toca no template e abandona antes de chegar num
+    // deles não é qualificado. Spec 2026-10-15 §3.
     //
     // Sem mexer em segmento: a coorte já nasce `artha` na importação. E quem
     // pediu para sair não é qualificação nenhuma — marcar como `qualificado`
     // quem acabou de mandar parar seria mentira na tela de quem atende.
     const terminal = passo.idP2 ?? passo.idP1
-    const qualificar = ehTerminalRtv(terminal) && terminal !== ID_OPTOUT
+    const qualificar = ehIdRtv(terminal) && terminal !== ID_OPTOUT
 
     if (segmento || tag || qualificar) {
       await qualificarLead(gatilho.leadId, { segmento, tag, qualificar })
@@ -111,12 +112,15 @@ export async function executarBot(gatilho: Gatilho): Promise<void> {
   }
 
   if (passo.comFecho) {
-    // A resposta é escolhida pelo id que encerrou o roteiro, não é mais uma
-    // constante. Quem apertou "Preços" recebe preço; quem pediu gente recebe o
-    // fecho. Spec 2026-08-25 §4.3.
-    const texto = mensagemTerminal(passo.idP1, passo.idP2)
-    const resposta = await enviarTexto(gatilho.phone, texto)
-    await gravarSaida(gatilho, resposta.messages[0]?.id ?? null, texto, 'text')
+    // Mesmo nome do {{1}} do template (`valorDoCampo`), para o lead ler o mesmo
+    // nas duas pontas. Uma mensagem por vez, em ordem: em "Quero voltar" o link
+    // vai antes da frase que diz "clicar no link acima". Spec 2026-10-15 §3.
+    const lead = gatilho.leadId ? await buscarLead(gatilho.leadId) : null
+    const nome = lead ? valorDoCampo('nome', lead, new Date()) : null
+    for (const texto of mensagensTerminais(passo.idP1, passo.idP2, nome)) {
+      const resposta = await enviarTexto(gatilho.phone, texto)
+      await gravarSaida(gatilho, resposta.messages[0]?.id ?? null, texto, 'text')
+    }
   }
 }
 
