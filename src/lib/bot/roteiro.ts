@@ -104,12 +104,12 @@ export const RTV_IDS = RTV_BOTOES.map((b) => b.id)
 export const ID_OPTOUT = 'rtv:sair'
 
 /**
- * O link de inscrição com o cupom já aplicado, mandado pelo Rafael. Vazio até
- * ele mandar, e há um teste que fica vermelho enquanto estiver vazio: mandar
+ * O link de inscrição com o cupom já aplicado, mandado pelo Rafael em
+ * 2026-10-15. Um teste exige que seja uma URL https e não o site: mandar
  * https://artha.ia.br sob "já estará com o cupom aplicado" seria afirmar ao
  * cliente uma coisa falsa. Spec 2026-10-15 §3.3.
  */
-export const LINK_CUPOM = ''
+export const LINK_CUPOM = 'https://buy.stripe.com/9B6aEW9vi3iz4z6bwAd7q0c'
 
 const IDS_RTV = new Set(RTV_IDS)
 

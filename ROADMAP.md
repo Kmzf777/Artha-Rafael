@@ -411,8 +411,8 @@ Spec `docs/superpowers/specs/2026-10-15-fluxo-volta-rafael-design.md`.
 - ✅ Triagem removida. Os três botões encerram: "Quero voltar" manda o link com
   cupom e a frase de prazo; "Preciso de ajuda" entrega a gente com o fecho;
   "Não quero receber" agradece pelo nome e faz opt-out.
-- ⏳ **Falta o link com cupom.** `LINK_CUPOM` em `src/lib/bot/roteiro.ts` está
-  vazio e um teste fica vermelho até ser preenchido. Não fazer merge antes.
+- ✅ Link com cupom do Rafael (Stripe) preenchido em `LINK_CUPOM`, em
+  `src/lib/bot/roteiro.ts`.
 - ⏳ Depois do deploy: `POST /api/templates/sync` para o CRM mostrar o texto do
   template novo.
 - ⏳ Simular com `scripts/simular-disparo.ts <telefone> <nome> mkt_rtv_volta_01`:

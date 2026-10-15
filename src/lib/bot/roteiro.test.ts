@@ -273,7 +273,7 @@ describe('terminais do ramo rtv', () => {
     expect(RESPOSTA_POR_ID['rtv:problema']).toBeUndefined()
   })
 
-  it('LINK_CUPOM é uma URL https, sozinha (vermelho até o Rafael mandar o link)', () => {
+  it('LINK_CUPOM é uma URL https, sozinha', () => {
     // Spec 2026-10-15 §3.3. Este teste falhando é a trava que impede o merge:
     // sem o link, "já estará com o cupom aplicado" é falso.
     expect(LINK_CUPOM).toMatch(/^https:\/\/\S+$/)
