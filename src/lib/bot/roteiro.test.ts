@@ -266,6 +266,12 @@ describe('terminais do ramo rtv', () => {
     expect(IDS_QUE_ENCAMINHAM.has('rtv:problema')).toBe(true)
     expect(RESPOSTA_POR_ID['rtv:problema']).toBeUndefined()
   })
+
+  it('LINK_CUPOM é uma URL https, sozinha (vermelho até o Rafael mandar o link)', () => {
+    // Spec 2026-10-15 §3.3. Este teste falhando é a trava que impede o merge:
+    // sem o link, "já estará com o cupom aplicado" é falso.
+    expect(LINK_CUPOM).toMatch(/^https:\/\/\S+$/)
+  })
 })
 
 describe('variantes de disparo', () => {

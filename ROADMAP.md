@@ -401,3 +401,18 @@ perguntar, e o painel em produção servir esta branch.
   DESIGN.md. Um operador varrendo 120 disparos em produção depende disso para
   achar as falhas, o que é mais lento que um vermelho. Revisitar agora que a
   operação é real.
+
+## Em execução (2026-10-15) — fluxo de volta do Rafael
+
+Spec `docs/superpowers/specs/2026-10-15-fluxo-volta-rafael-design.md`.
+
+- ✅ Template `mkt_rtv_volta_01` aprovado na Meta (id 1629556198634284), texto do
+  Rafael, botões Quero voltar / Preciso de ajuda / Não quero receber.
+- ✅ Triagem removida. Os três botões encerram: "Quero voltar" manda o link com
+  cupom e a frase de prazo; "Preciso de ajuda" entrega a gente com o fecho;
+  "Não quero receber" agradece pelo nome e faz opt-out.
+- ⏳ **Falta o link com cupom.** `LINK_CUPOM` em `src/lib/bot/roteiro.ts` está
+  vazio e um teste fica vermelho até ser preenchido. Não fazer merge antes.
+- ⏳ Depois do deploy: `POST /api/templates/sync` para o CRM mostrar o texto do
+  template novo, e `scripts/simular-disparo.ts <telefone> <nome>
+  mkt_rtv_volta_01` apertando os três botões.
