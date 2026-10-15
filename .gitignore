@@ -62,3 +62,6 @@ env*.txt
 # 2026-09-09. O importador de `scripts/` lê o CSV daqui, versionar não é opção.
 *.xlsx
 *.csv
+
+# log do dev server redirecionado (npm run dev > dev.log)
+dev.log
