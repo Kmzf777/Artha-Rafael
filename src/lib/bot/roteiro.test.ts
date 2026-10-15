@@ -155,6 +155,12 @@ describe('mensagensTerminais', () => {
     expect(mensagensTerminais('rtv:problema', null, 'Rafael')).toEqual([FECHO])
   })
 
+  it('nome com `$&` sai literal (sem interpretação de padrão do replace)', () => {
+    expect(mensagensTerminais('rtv:sair', null, 'A$&B')).toEqual([
+      'Obrigado pelo retorno, A$&B. Se precisar de ajuda com as finanças, fale comigo.',
+    ])
+  })
+
   it('id desconhecido cai no fecho, nunca em silêncio', () => {
     expect(mensagensTerminais(null, null, null)).toEqual([FECHO])
     expect(mensagensTerminais('p1:artha', 'p2:inexistente', null)).toEqual([FECHO])
@@ -271,6 +277,8 @@ describe('terminais do ramo rtv', () => {
     // Spec 2026-10-15 §3.3. Este teste falhando é a trava que impede o merge:
     // sem o link, "já estará com o cupom aplicado" é falso.
     expect(LINK_CUPOM).toMatch(/^https:\/\/\S+$/)
+    // A spec §3.3 proíbe a home como placeholder: não leva ao cupom.
+    expect(LINK_CUPOM).not.toMatch(/^https:\/\/(www\.)?artha\.ia\.br\/?$/)
   })
 })
 

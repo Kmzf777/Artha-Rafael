@@ -311,6 +311,7 @@ export function mensagensTerminais(
   primeiroNome: string | null
 ): string[] {
   const id = idP2 ?? idP1
-  const texto = ((id ? RESPOSTA_POR_ID[id] : undefined) ?? FECHO).replace('{vocativo}', vocativo(primeiroNome))
+  // Replacer em função: com string, `$&` e similares no nome seriam interpretados.
+  const texto = ((id ? RESPOSTA_POR_ID[id] : undefined) ?? FECHO).replace('{vocativo}', () => vocativo(primeiroNome))
   return id === 'rtv:voltar' ? [LINK_CUPOM, texto] : [texto]
 }

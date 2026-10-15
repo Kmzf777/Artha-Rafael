@@ -414,5 +414,14 @@ Spec `docs/superpowers/specs/2026-10-15-fluxo-volta-rafael-design.md`.
 - ⏳ **Falta o link com cupom.** `LINK_CUPOM` em `src/lib/bot/roteiro.ts` está
   vazio e um teste fica vermelho até ser preenchido. Não fazer merge antes.
 - ⏳ Depois do deploy: `POST /api/templates/sync` para o CRM mostrar o texto do
-  template novo, e `scripts/simular-disparo.ts <telefone> <nome>
-  mkt_rtv_volta_01` apertando os três botões.
+  template novo.
+- ⏳ Simular com `scripts/simular-disparo.ts <telefone> <nome> mkt_rtv_volta_01`:
+  mandar `!reset` na conversa antes de cada simulação (o número do gestor já tem
+  `rtv:voltar`/`rtv2:preco` de 2026-10-06 e a regra "terminal do ramo já
+  respondido" calaria todo toque) e apertar UM botão por simulação, pois o
+  primeiro encerra o roteiro. São três simulações para cobrir os três. O `{nome}`
+  da resposta vem do lead recriado a partir do nome do perfil do WhatsApp, não do
+  argumento `<nome>`.
+- ⏳ Não disparar `mkt_rtv_volta_01` em produção antes do merge desta branch: a
+  `main` ainda roda o fluxo antigo (triagem em "Quero voltar", "Me conta o que
+  travou" no botão 2).

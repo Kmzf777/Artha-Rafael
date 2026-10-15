@@ -336,8 +336,9 @@ describe('proximoPasso', () => {
   })
 
   it('35. depois do terminal rtv, texto livre não traz a p1 de volta', () => {
-    // O bot pediu "me conta o que travou". A pessoa contou. Devolver o menu de
-    // segmentação aqui é o defeito que este ramo existe para consertar.
+    // O bot entregou a conversa à equipe (rtv:problema fecha com o FECHO). A pessoa
+    // escreveu o problema. Devolver o menu de segmentação aqui é o defeito que
+    // este ramo existe para consertar.
     const passo = proximoPasso([
       disparo(),
       doTemplateRtv('rtv:problema'),
@@ -386,7 +387,8 @@ describe('proximoPasso', () => {
 
   it('40. botão da triagem antiga numa conversa velha não reabre nada', () => {
     // Conversa de teste de 2026-10-06 tem `rtv2:preco` gravado. O id deixou de
-    // ser conhecido: entra pela regra de id desconhecido, que encerra sem fecho.
+    // ser conhecido, mas quem cala é a regra "terminal do ramo já respondido":
+    // `rtv:voltar` já está antes no histórico.
     const passo = proximoPasso([disparo(), doTemplateRtv('rtv:voltar'), doBot(), botao('rtv2:preco')])
     expect(passo.acao).toBe('calar')
   })
