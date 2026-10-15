@@ -283,8 +283,8 @@ describe('triagem do ramo rtv', () => {
 describe('variantes de disparo', () => {
   const VARIANTES = Object.entries(TEMPLATES_RTV)
 
-  it('são três', () => {
-    expect(VARIANTES).toHaveLength(3)
+  it('são quatro', () => {
+    expect(VARIANTES).toHaveLength(4)
   })
 
   it('a chave do registro é o nome do template', () => {

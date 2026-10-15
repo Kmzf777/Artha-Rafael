@@ -94,7 +94,7 @@ export const PREFIXO_TEMPLATE_RTV = 'mkt_rtv'
  */
 export const RTV_BOTOES: Botao[] = [
   { id: 'rtv:voltar', titulo: 'Quero voltar' },
-  { id: 'rtv:problema', titulo: 'Tive um problema' },
+  { id: 'rtv:problema', titulo: 'Preciso de ajuda' },
   { id: 'rtv:sair', titulo: 'Não quero receber' },
 ]
 
@@ -228,6 +228,13 @@ export const TEMPLATES_RTV = {
     'O Artha responde isso em 1 segundo. Ele soma suas contas e cartões sozinho, sem planilha nenhuma.',
     '',
     'Você chegou a conectar seu banco e parou no meio do caminho. Sua conta continua aqui.',
+  ]),
+
+  // Texto do Rafael (cliente), 2026-10-15.
+  mkt_rtv_volta_01: rascunhoRtv('mkt_rtv_volta_01', [
+    'Oi, {{1}}. Você conectou seu banco no Artha e não assinou. Sua conta continua aqui, do jeito que você deixou.',
+    '',
+    'A taxa de adesão de R$100 a gente tirou pra você voltar. O primeiro mês sai R$97 em vez de R$197, e a gente te acompanha na hora de reconectar, o que leva 2 minutos.',
   ]),
 }
 
