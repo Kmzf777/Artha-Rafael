@@ -5,7 +5,8 @@
 // (Edge e Node 18+), então o mesmo módulo serve o middleware e as rotas.
 //
 // Não há tabela de usuários: a credencial principal é compartilhada pela equipe
-// (ver `AccountInfo`), e `PAINEL_CONTAS` só acrescenta pares usuário/senha.
+// (ver `AccountInfo`), e `PAINEL_CONTAS` e o Supabase Auth só acrescentam pares
+// usuário/senha (ver `emailDaConta`).
 // O token não carrega identidade — carrega validade. Contas por pessoa são o
 // recorte B5.
 
@@ -118,6 +119,21 @@ export async function credencialConfere(usuario: string, senha: string, contas: 
     })
   )
   return resultados.some(Boolean)
+}
+
+/**
+ * E-mail da conta no Supabase Auth para o usuário digitado no login. Com `@`,
+ * é o próprio e-mail; sem, vira `<usuario>@painel.invalid` — `.invalid` é TLD
+ * reservado (RFC 2606), então o Supabase nunca consegue entregar e-mail para
+ * ele. Minúsculas e sem espaço nas pontas; usuário vazio devolve vazio.
+ *
+ * O login e o `scripts/criar-conta-painel.ts` passam por aqui: os dois
+ * precisam chegar ao mesmo e-mail para o mesmo usuário.
+ */
+export function emailDaConta(usuario: string): string {
+  const limpo = usuario.trim().toLowerCase()
+  if (!limpo) return ''
+  return limpo.includes('@') ? limpo : `${limpo}@painel.invalid`
 }
 
 export const COOKIE_SESSAO = 'artha_sessao'

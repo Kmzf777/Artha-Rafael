@@ -3,6 +3,7 @@ import {
   COOKIE_SESSAO,
   credencialConfere,
   criarSessao,
+  emailDaConta,
   lerContas,
   senhaConfere,
   sessaoValida,
@@ -99,6 +100,26 @@ describe('credencialConfere', () => {
     expect(await credencialConfere('ninguem', 'principal', CONTAS)).toBe(false)
     expect(await credencialConfere('rafael', 'errada', CONTAS)).toBe(false)
     expect(await credencialConfere('', '', [])).toBe(false)
+  })
+})
+
+describe('emailDaConta', () => {
+  it('usuário sem arroba vira e-mail no TLD reservado .invalid', () => {
+    expect(emailDaConta('rafael')).toBe('rafael@painel.invalid')
+  })
+
+  it('usuário com arroba é usado como e-mail', () => {
+    expect(emailDaConta('rafael@artha.ia.br')).toBe('rafael@artha.ia.br')
+  })
+
+  it('normaliza maiúsculas e espaços nas pontas', () => {
+    expect(emailDaConta('  Rafael ')).toBe('rafael@painel.invalid')
+    expect(emailDaConta(' Rafael@Artha.IA.br ')).toBe('rafael@artha.ia.br')
+  })
+
+  it('usuário vazio não vira e-mail', () => {
+    expect(emailDaConta('')).toBe('')
+    expect(emailDaConta('   ')).toBe('')
   })
 })
 

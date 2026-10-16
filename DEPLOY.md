@@ -157,6 +157,25 @@ com `PAINEL_SENHA` e não guarda qual conta entrou, então **tirar uma conta de
 até 12h). Para derrubar na hora, troque `PAINEL_SENHA`, o que derruba todas.
 Mudança de variável na Vercel só vale depois de um redeploy.
 
+**Conta extra sem mexer na Vercel:** contas no Supabase Auth do próprio projeto.
+Se a credencial não bate com a principal nem com `PAINEL_CONTAS`, o login tenta
+o Supabase Auth. Quem não tem acesso às variáveis da Vercel cria a conta assim,
+de uma máquina com o `.env.local` apontando para o banco de produção:
+
+```bash
+IMPORT_CONFIRMO=sim PAINEL_NOVA_SENHA='<senha com 12+ caracteres>' npx tsx scripts/criar-conta-painel.ts rafael
+```
+
+O usuário `rafael` vira o e-mail interno `rafael@painel.invalid` (TLD
+reservado, nunca recebe e-mail); com `@` no usuário, o e-mail é usado como
+está. No painel se digita `rafael`. Rodar de novo para a mesma conta troca a
+senha. A senha vai por variável de ambiente, não por argumento, e o script
+nunca a imprime. Não há cadastro público.
+
+**Remover:** Authentication → Users no dashboard do Supabase, apagar a conta.
+Isso impede logins novos, mas, como acima, **a sessão já aberta dura até 12h**;
+para derrubar na hora, só trocando `PAINEL_SENHA`.
+
 ## 6. Disparo em massa (opcional — não é preciso para mensagens)
 
 O `vercel.json` **não declara cron**. Cron com granularidade menor que um dia é

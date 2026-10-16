@@ -386,6 +386,9 @@ perguntar, e o painel em produção servir esta branch.
   Paliativo em 2026-10-16: `PAINEL_CONTAS` (opcional) aceita contas extras
   `usuario:senha;...` no login, para dar acesso ao Rafael sem a credencial
   principal. Sem identidade na sessão e sem revogação imediata; ver DEPLOY.md §5.
+  No mesmo dia: contas no Supabase Auth do projeto, criadas por
+  `scripts/criar-conta-painel.ts`, para quem não tem acesso às variáveis da
+  Vercel. Mesmas limitações; ver DEPLOY.md §5.
 - **B4 — agente de IA.** Depende do JSON exportado do n8n e das três bases de
   conhecimento (Lúcia/Clara/LucIA — nome ainda em aberto), nenhum entregue.
 - **Realtime do Supabase** no lugar do polling atual (spec §3.3) — troca
