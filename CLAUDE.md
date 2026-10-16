@@ -1,145 +1,155 @@
 # Artha System — CLAUDE.md
 
-Diretrizes comportamentais, orquestração e contexto técnico do projeto para reduzir erros, evitar complexidade desnecessária e acelerar o desenvolvimento.
+<!-- Manutenção: alvo abaixo de 200 linhas. Só entra o que o Claude não descobre
+lendo o código. Regra que vale para parte do código vai para .claude/rules/ com
+`paths:`. Estado do projeto vai para o ROADMAP, deploy para o DEPLOY.md.
+Pesquisa que embasa isto: docs/research/2026-10-16-claude-md-e-workflow.md -->
 
----
+Painel operacional de WhatsApp da **Artha** (planejamento e educação financeira).
+O eixo é **atendimento e qualificação** de quem escreve para o número. Não é
+reativação: a base de 612 inativos nunca foi entregue pelo cliente.
 
-## PARTE 1: Diretrizes de Trabalho e Orquestração
+**O estado corrente está no `ROADMAP.md`, não aqui.** Antes de assumir em que fase
+o projeto está, o que está aplicado no banco ou o que está pendente, leia o
+ROADMAP. Deploy, variáveis e autenticação: `DEPLOY.md`. Specs por onda:
+`docs/superpowers/specs/`.
 
-### 1. Pense antes de codificar
-**Não assuma. Não esconda confusões. Apresente tradeoffs.**
-- **Investigue Antes de Agir:** Nunca especule sobre códigos que você não leu. Use comandos de leitura para inspecionar os arquivos relevantes (`src/app/`, `src/components/`, etc.) ANTES de criar um plano.
-- **Explicite suposições:** Se houver ambiguidade no pedido, apresente as interpretações possíveis e peça esclarecimento — não escolha uma silenciosamente.
-- **Aponte os tradeoffs:** Questione ativamente se existir uma abordagem mais simples para o problema.
-- **Pare se estiver confuso:** Nomeie o que não está claro antes de começar a escrever o código.
+## Como trabalhar
 
-### 2. Simplicidade em primeiro lugar
-**Mínimo de código necessário. Nada de especulações.**
-- Escreva o mínimo de código necessário para resolver o problema. Sem features extras, sem abstrações antecipadas, ou "flexibilidades/configurações" que não foram pedidas.
-- Não crie tratamento de erros para cenários impossíveis.
-- Se 200 linhas puderem virar 50, reescreva.
-- **O Teste:** Um engenheiro sênior acharia essa solução supercomplicada? Se sim, simplifique.
+- **Investigue antes de agir.** Leia o código que vai mexer antes de planejar.
+  Havendo ambiguidade no pedido, apresente as leituras possíveis e pergunte; não
+  escolha uma em silêncio. Aponte quando houver caminho mais simples.
+- **Mínimo de código.** Sem feature, abstração ou configuração que não foi pedida.
+  Sem tratamento de erro para cenário impossível.
+- **Mudança cirúrgica.** Cada linha alterada rastreia até o pedido. Sem
+  refatoração de passagem; siga o estilo do arquivo. Remova só o que a sua
+  mudança deixou órfão.
+- **Meta verificável.** Transforme o pedido em critério checável ("reproduzir o
+  bug, corrigir, ver que não ocorre mais") e mostre a evidência (comando e saída)
+  antes de dizer que terminou. Em tarefa de vários passos, declare o plano:
+  `1. [passo] → verificar: [critério]`.
+- **Agentes em paralelo editam arquivos disjuntos.** Cada subagente toca só os
+  arquivos do seu escopo declarado; colisão de arquivo é a falha mais cara aqui.
+- Responda em português do Brasil.
 
-### 3. Mudanças cirúrgicas
-**Mexa apenas no necessário. Limpe apenas a sua própria bagunça.**
-- Altere apenas o estritamente necessário. Sem refatorações "de passagem" ou "melhorias" em códigos, comentários ou formatações adjacentes que não estão quebrados.
-- Siga o estilo existente do arquivo, mesmo que você faria diferente em outro contexto.
-- Remova importações, variáveis e funções que as **suas** alterações tornaram obsoletas. Não apague código morto preexistente, a menos que solicitado.
-- **A Regra de Ouro:** Cada linha alterada deve ter rastreabilidade direta com o pedido inicial do usuário.
+## Comandos
 
-### 4. Execução Orientada a Metas
-**Defina critérios de sucesso. Crie loops de verificação.**
-Transforme tarefas imperativas em metas verificáveis:
-- *Em vez de "Adicionar validação"* -> "Testar inputs inválidos e garantir que o código lide com eles".
-- *Em vez de "Consertar o bug"* -> "Reproduzir o bug, aplicar a correção e verificar se não ocorre mais".
+```bash
+npm run dev           # localhost:3000
+npm run build         # build de produção + type-check
+npm run lint          # ESLint
+npm test              # Vitest (src/**/*.test.ts)
+npx tsc --noEmit      # type-check sem build
+```
 
-Para tarefas de múltiplas etapas, declare um plano breve antes de agir:
-`1. [Passo] → verificar: [critério de checagem]`
-`2. [Passo] → verificar: [critério de checagem]`
+Scripts de `scripts/` rodam com `npx tsx scripts/<nome>.ts`; `import './env'`
+(`scripts/env.ts`) carrega o `.env.local`, que o `tsx` não lê sozinho. Script que
+importa `src/server/*` precisa de `npx tsx --conditions=react-server ...`, senão o
+`server-only` lança. Travas de confirmação em `.claude/rules/scripts.md`.
 
-### 5. Arquivos disjuntos entre agentes simultâneos
-Quando o trabalho é dividido entre subagentes, cada um edita **somente** os arquivos do seu escopo declarado. Colisão de arquivo entre agentes paralelos é o modo de falha mais caro do projeto.
+## Repositório e produção
 
----
+- **O repo é PÚBLICO** (`github.com/Kmzf777/Artha-Rafael`). Nada de PII (nome,
+  telefone, e-mail de lead real), token ou segredo em código, teste, doc ou
+  mensagem de commit. Planilha de leads (`*.csv`, `*.xlsx`) e `env*.txt` estão no
+  `.gitignore` de propósito; não contorne.
+- **Push na `main` é deploy de produção** na Vercel (integração Git). Push em
+  outro branch gera só preview. **Merge e push na `main` só com o ok do dono.**
+  Trabalhe em branch ou worktree e pare antes do merge.
+- **Migrations são aplicadas à mão** no SQL Editor do Supabase, **antes** do
+  deploy que as usa. Não há CLI do Supabase nem migração automática no deploy.
+  Coluna faltando no banco quebra em silêncio (ver DEPLOY.md, "Migration antes do
+  código"). Registre no ROADMAP se a migration nova já foi aplicada.
+- **`.env.local` não chega à Vercel.** Variável nova ou alterada é criada no
+  painel da Vercel e exige redeploy para valer.
 
-## PARTE 2: Contexto Técnico do Projeto (Artha System)
+## Gotchas operacionais
 
-### O que é
+- **Não há cron.** `vercel.json` só fixa a região. A fila de disparo só drena por
+  `POST /api/fila/disparar-agora` (sessão do painel; é o botão "Processar fila
+  agora" de `Agendamentos.tsx`, componente que hoje está fora do menu),
+  `POST /api/fila/processar` com `CRON_SECRET`, ou chamando `processarFila()` de
+  `src/server/fila.ts`. Comentário no código que fala em "cron do vercel.json"
+  está desatualizado.
+- **Template aprovado na Meta não aparece sozinho.** Depois da aprovação, chame
+  `POST /api/templates/sync` (exige sessão do painel, cookie do `/login`) para
+  atualizar o cache local. O botão "Sincronizar com a Meta" mora em
+  `Templates.tsx`, também fora do menu.
+- **`!reset` no WhatsApp apaga mensagens, leitura e o lead daquele número.** É o
+  comando de teste do roteiro, sempre ativo, e só afeta quem o mandou. Teste de
+  WhatsApp ponta a ponta exige sessão **fora do auto mode**: o classificador
+  bloqueia o `!reset`.
+- **Contas do painel.** Credencial principal em `PAINEL_USUARIO`/`PAINEL_SENHA`
+  na Vercel. Contas extras por `PAINEL_CONTAS` (`usuario:senha;...`) ou no
+  Supabase Auth via `scripts/criar-conta-painel.ts`. Nenhuma derruba sessão
+  aberta ao ser removida; só trocar `PAINEL_SENHA` derruba todas (DEPLOY.md §5).
+- **Importar leads:** `IMPORT_CONFIRMO=sim npx tsx scripts/importar-leads.ts
+  <arquivo.csv> <tag-do-lote>`. A tag é o 2º argumento e é por ela que o recorte
+  da campanha acha o lote; sem ela vale `rtv-lote-2026-09` e o lote novo cai
+  junto com o antigo.
+- **"Lida" só quando a equipe age.** Abrir a conversa não marca. Marca a resposta
+  humana por `POST /api/mensagens` (que também manda o visto azul à Meta; falha
+  só loga) ou "Marcar como lida" no botão direito do card (só no painel, sem
+  visto azul). Bot e fila de disparo não marcam nem mandam visto.
 
-Painel operacional de WhatsApp da **Artha** — planejamento e educação financeira. O eixo é **atendimento e qualificação** de quem escreve para o número. Não é reativação: não há base inativa carregada, e os 612 inativos que este arquivo prometia nunca foram entregues pelo cliente.
+## Arquitetura (o que não salta do código)
 
-Três produtos do cliente, que aparecem como segmento de lead no sistema:
+- **Um deploy só.** Next.js 16 App Router: telas e as rotas de `src/app/api/`
+  sobem juntas como funções serverless em `gru1` (São Paulo, onde está o
+  Supabase).
+- **Backend real.** Supabase Postgres com RLS `deny all`: só o servidor acessa,
+  com a service role, por `src/server/` (`repo/*`, `fila.ts`, `meta/*`, `bot/*`).
+  Os módulos de lá que tocam banco ou segredo importam `server-only`.
+- **WhatsApp Cloud API.** `POST /api/webhook` valida HMAC (`X-Hub-Signature-256`),
+  grava e roda o bot. O bot é **de botões, determinístico, sem LLM**: roteiro em
+  `src/lib/bot/roteiro.ts`, motor em `src/lib/bot/estado.ts`, execução em
+  `src/server/bot/executar.ts`. O agente de IA (B4) segue bloqueado esperando o
+  JSON do n8n.
+- **Front.** Hooks em `src/hooks/` com `@tanstack/react-query` fazendo `fetch`
+  nas rotas `/api/*`, com polling (5 s na lista de conversas, 3 s na timeline).
+  Mutação chama a API e atualiza o cache com `queryClient.setQueryData`.
+- **`src/mock/` não é mais fonte de dados.** Dali o app só importa `types.ts`
+  (os tipos de domínio, via `@/mock/types`). `db.ts`, `store.ts` e `metrics.ts`
+  são o legado da demo, usados só pelos testes de `src/mock/`. Tela nenhuma lê
+  do store em memória.
+- **Regras puras e testadas ficam em `src/lib/`** (`regras.ts`, `janela24h`,
+  `statusEntrega`, `timeline`, `templates`, ...), fora de componente e de rota.
+  Regra de negócio nova nasce ali, com teste.
+- **Abas.** Cinco: `dashboard`, `conversations`, `leads`, `reports`, `account`.
+  Registro em `src/lib/tabs.ts`, switch em `src/app/(app)/page.tsx`, menu em
+  `src/components/Sidebar.tsx`; os três mudam juntos. Deep-link por `?tab=`.
+  Disparos, Templates, Agendamentos e Reativação existem como componente mas
+  saíram do menu.
+- **Sessão.** `src/middleware.ts` exige cookie assinado em tudo, exceto
+  `/api/webhook` (HMAC da Meta), `/api/fila/processar` (`CRON_SECRET`), login e
+  logout.
+- **Número igual entre telas.** Métrica é derivada da mesma régua em
+  `src/lib/regras.ts` (`getMetrics`, `podeDisparar`, `recorteReativacao`). Duas
+  telas mostrando números diferentes para a mesma coisa é o defeito mais grave
+  possível neste painel.
+
+## Produtos (aparecem como segmento de lead)
 
 | Produto | Público | Nota |
 | --- | --- | --- |
-| **Artha** | B2C, pessoa física | Open Finance. Mensal R$197 no 1º mês (adesão de R$100) e R$97 depois; anual R$997 sem adesão |
-| **Dhana** | B2B | White-label para planejadores financeiros |
+| **Artha** | B2C, pessoa física | Open Finance. Mensal R$197 no 1º mês (R$97 + adesão de R$100) e R$97 depois; anual R$997 sem adesão. Fonte: `artha.ia.br` |
+| **Dhana** | B2B | White-label para planejadores financeiros. Sem preço público |
 | **LucIA** | B2B | IA operacional para escritórios de planejamento |
 
-### Fase atual: backend real
+## Voz
 
-Supabase Postgres, WhatsApp Cloud API em produção (webhook com HMAC + envio), motor de disparo, e um bot de botões determinístico dentro do webhook. **Sem IA** — o roteiro é fixo e não há LLM no projeto; o agente de IA (B4) segue bloqueado esperando o JSON do n8n.
+Institucional Artha: "Aqui é da Artha", "equipe da Artha". **Nenhum nome de
+persona (Lúcia, Clara, LucIA) em copy de mensagem.** Clara é a assistente
+**dentro** do produto (`artha.ia.br` vende "Assistente Clara IA via WhatsApp"); o
+número deste painel é o canal **comercial**, e chamar o bot de Clara faz o lead
+achar que já fala com algo que não assinou. Lúcia é o CRM B2B vendido a
+planejadores. Regras de escrita da copy do bot: `.claude/rules/copy-do-bot.md`.
 
-**O `ROADMAP.md` é a fonte do estado corrente, não este arquivo.** Este aqui descreveu "frontend de demonstração, nenhum backend" por vários dias depois de o backend existir, e quem leu foi enganado. Antes de assumir uma fase, leia o ROADMAP.
+## Regras por área
 
-- Specs por onda: `docs/superpowers/specs/`
+Carregam sozinhas quando o Claude lê ou edita arquivo da área:
 
-### Comandos essenciais
-
-```bash
-npm run dev      # dev server (localhost:3000)
-npm run build    # build de produção + type-check
-npm run lint     # ESLint
-npm test         # Vitest
-```
-
-O projeto **é** um repositório git e recebe commits normalmente. A instrução contrária que morava aqui valia só para a fase de demonstração.
-
-### Stack
-
-| Camada | Tecnologia |
-| --- | --- |
-| Framework | Next.js 16.2 (App Router, Turbopack) |
-| UI | React 19 + TypeScript |
-| Componentes | **shadcn/ui estilo `base-nova`** — usa `@base-ui/react`, **NÃO** Radix UI |
-| CSS | Tailwind CSS v4 + tokens em `src/app/globals.css` |
-| Dados | `@tanstack/react-query` sobre o store em memória de `src/mock/` |
-| Tema | `next-themes`, `attribute="class"` |
-
-### Atenção: shadcn/ui usa @base-ui/react
-
-Os componentes em `src/components/ui/` usam `@base-ui/react` como primitivo — **diferente** da maioria dos projetos shadcn, que usam Radix UI.
-
-* **NÃO existe prop `asChild`** — use `render={<elemento />}`:
-
-```tsx
-// ❌ Radix (não funciona aqui)
-<TooltipTrigger asChild><button>...</button></TooltipTrigger>
-
-// ✅ Base UI
-<TooltipTrigger render={<span className="block" />}><button>...</button></TooltipTrigger>
-```
-
-* **`TooltipProvider`** já está em `src/app/layout.tsx`.
-* Novos componentes via `npx shadcn@latest add <nome>` chegam para `@base-ui/react` automaticamente. Se o CLI travar ou pedir input, escrever à mão seguindo o idioma dos arquivos vizinhos (base-ui + `cva` + `cn`).
-
-### Design system
-
-`DESIGN.md` na raiz é a **autoridade estética** — interpretação da linguagem visual da Uber. A spec da feature resolve suas duas contradições internas e define o acento.
-
-- Duo preto-e-branco. **Pílula 999px** é a assinatura geométrica: todo elemento interativo a usa.
-- Card 16px (`--r-xl`), input 8px (`--r-md`), **Level 0 flat por padrão** — a maioria das superfícies se apoia em contraste, não em sombra.
-- No tema escuro, **elevação é borda hairline, não sombra**. Sombra preta sobre fundo preto não existe.
-- Títulos em **sentence-case**, sempre. Sem versalete, sem `letter-spacing` no display.
-- Alvo de toque mínimo **44px** em qualquer elemento interativo.
-
-**O acento — Ouro Artha.** Quebra consciente e delimitada da regra "sem segundo acento" do DESIGN.md. Cinco papéis, lista fechada:
-
-1. Barra indicadora da aba ativa na sidebar (3px, borda esquerda).
-2. Anel de `:focus-visible`.
-3. O número-herói (inativos no Dashboard, total do recorte na Reativação).
-4. Estado selecionado de chip de filtro.
-5. Série primária dos gráficos.
-
-**Proibições absolutas:** o CTA primário **nunca** é ouro (permanece pílula preta no claro / branca no escuro). O acento **nunca** carrega estado semântico. Nenhum segundo acento.
-
-**Estado operacional é cinza + ícone + rótulo, nunca cor** — `src/components/ui/status-label.tsx` é a fonte única. O rótulo textual é sempre visível.
-
-**Só tokens.** Zero literal de cor, raio, espaçamento ou tamanho de fonte no JSX. A escala de tipo existe como classe utilitária (`t-display-xl`, `t-body-sm-strong`, …) justamente para isso. Se falta um token, o certo é reportar, não inventar hex.
-
-### Padrões do projeto
-
-* **Dados fictícios**: `src/mock/` é a fonte única. Nenhuma tela inventa número. `getMetrics()` é **derivado do dataset** — se o Dashboard diz 612 inativos, a Reativação encontra exatamente 612 com a mesma régua. Número divergente entre telas é o defeito mais grave possível nesta demo.
-* **Determinismo**: nenhum `Math.random()` nem `Date.now()` em tempo de render. Datas são offsets fixos de uma data-âncora exportada — screenshot precisa reproduzir.
-* **Data fetching**: `@tanstack/react-query` (provider em `src/app/providers.tsx`). Hooks em `src/hooks/`. Mutação grava no store e atualiza o cache via `queryClient.setQueryData` — o mesmo padrão que o Realtime usaria em produção. Trocar para um backend depois é cirurgia de `queryFn`, não reescrita.
-* **Abas**: `src/lib/tabs.ts` registra as nove superfícies; o switch de render vive em `src/app/(app)/page.tsx`. Deep-link por `?tab=`. Ao mexer nas abas, os dois arquivos mudam junto com `src/components/Sidebar.tsx`.
-* **Regras puras e testadas** ficam em `src/lib/` (`janela24h`, `timeline`, `conversationKey`, `format`, `scheduling`, `disparos`, …), fora dos componentes.
-* **Gráficos**: SVG inline, **sem Recharts**. Máximo 3 séries; série primária em `--accent`, demais em rampa de opacidade de `--ink`; distinção adicional por padrão de preenchimento, não por matiz; rótulo direto na série, não legenda apartada.
-
-### Voz
-
-Institucional Artha — "Aqui é da Artha", "equipe da Artha". **Nenhum nome de persona** (Lúcia / Clara / LucIA) em copy de mensagem.
-
-A regra deixou de ser "o cliente não escolheu" e passou a ter razão de produto. `artha.ia.br`, lido em 2026-09-26, vende **"Assistente Clara IA via WhatsApp"** como feature dos dois planos: Clara é a assistente **dentro do produto**. O número deste painel é o canal **comercial**, e chamar o bot de vendas de Clara faz o lead achar que já está falando com a assistente que ele ainda não assinou. Lúcia é pior — é o CRM B2B vendido a planejadores, e é o que o template `mkt_rtv_voce_sabe_01` assina por engano na conta da Meta.
-
-Regras de escrita da copy de mensagem, travadas por teste em `src/lib/bot/roteiro.test.ts`: sem travessão, sem dois-pontos introduzindo frase, sem markdown, e link sozinho na linha.
+- `.claude/rules/design-system.md`: UI, tokens, `@base-ui/react`, acento ouro.
+- `.claude/rules/copy-do-bot.md`: roteiro, templates e texto de mensagem.
+- `.claude/rules/scripts.md`: como rodar `scripts/`.
+- `.claude/rules/migrations.md`: `supabase/migrations/`.

@@ -41,7 +41,11 @@ yarn-error.log*
 next-env.d.ts
 
 # local Copilot/Claude workspace state
-.claude/
+# `.claude/*` e não `.claude/`: com o diretório inteiro ignorado o git não
+# consegue reincluir nada dentro dele, e as regras por área do CLAUDE.md
+# (`.claude/rules/`) precisam ser versionadas.
+.claude/*
+!.claude/rules/
 
 # downloaded package archives
 *.tgz
