@@ -26,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import CampanhasLista from '@/components/CampanhasLista'
 import { useMetrics } from '@/hooks/useMetrics'
 import { ROTULO_SEGMENTO } from '@/lib/segmentos'
 import type { Segmento } from '@/mock/types'
@@ -291,6 +292,8 @@ export default function Reports() {
           )}
         </CardContent>
       </Card>
+
+      <CampanhasLista />
     </div>
   )
 }
