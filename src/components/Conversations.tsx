@@ -36,9 +36,6 @@ export default function Conversations({ onUpdateUnread }: ConversationsProps) {
   const { templates } = useTemplates()
 
   const [selecionada, setSelecionada] = useState<string | null>(null)
-  /** Não lidas no instante da abertura: é o divisor da thread, e ele não pode
-   *  sumir no mesmo clique que zera o badge. */
-  const [naoLidasAoAbrir, setNaoLidasAoAbrir] = useState(0)
   const [busca, setBusca] = useState('')
   const [respondendoA, setRespondendoA] = useState<Message | null>(null)
   const [detalhesAbertos, setDetalhesAbertos] = useState(true)
@@ -47,8 +44,7 @@ export default function Conversations({ onUpdateUnread }: ConversationsProps) {
 
   // A conversa mais recente já vem aberta — um painel de atendimento vazio no
   // primeiro frame não diz nada sobre o produto. É DERIVADO, não estado: abrir
-  // por efeito seria uma renderização em cascata, e a conversa ainda não foi
-  // lida de fato até alguém clicar nela.
+  // por efeito seria uma renderização em cascata.
   const chaveAtiva = selecionada ?? conversas[0]?.key ?? null
 
   const conv = useMemo(
@@ -74,25 +70,29 @@ export default function Conversations({ onUpdateUnread }: ConversationsProps) {
     onUpdateUnread?.(naoLidas)
   }, [naoLidas, onUpdateUnread])
 
+  // Abrir a conversa NÃO marca como lida (2026-10-16). A não lida só some
+  // quando alguém da equipe responde (a rota de envio grava a leitura) ou pelo
+  // "Marcar como lida" do botão direito no card.
   const selecionar = useCallback(
     (conversa: Conversation) => {
       if (conversa.key === selecionada) return
-      const pendentes = naoLidas[conversa.key] ?? 0
       setSelecionada(conversa.key)
-      setNaoLidasAoAbrir(pendentes)
       setRespondendoA(null)
-      // `new Date()` e não o tique: isto é manipulador de evento, não render, e
-      // o carimbo de leitura tem de ser o do clique. Quem decide de fato é o
-      // servidor — a rota ignora este valor.
-      if (pendentes > 0) marcarLida({ key: conversa.key, lidoEm: new Date().toISOString() })
     },
-    [marcarLida, naoLidas, selecionada]
+    [selecionada]
   )
 
-  // Enquanto ninguém clicou, o divisor segue a contagem viva do card aberto;
-  // depois do clique, a foto tirada na abertura.
-  const pendentesNaThread =
-    selecionada === null ? (chaveAtiva ? naoLidas[chaveAtiva] ?? 0 : 0) : naoLidasAoAbrir
+  const marcarComoLida = useCallback(
+    (conversa: Conversation) =>
+      // `new Date()` e não o tique: isto é manipulador de evento, não render.
+      // Quem decide de fato é o servidor — a rota ignora este valor.
+      marcarLida({ key: conversa.key, lidoEm: new Date().toISOString() }),
+    [marcarLida]
+  )
+
+  // Como abrir não zera mais a contagem, o divisor segue a contagem viva do
+  // card aberto: some quando a equipe responde ou marca como lida.
+  const pendentesNaThread = chaveAtiva ? naoLidas[chaveAtiva] ?? 0 : 0
 
   // Relógio que tica, nunca uma âncora fixa: é esta linha que decide se o
   // composer aceita texto livre. Com o relógio parado, uma aba deixada aberta
@@ -113,6 +113,7 @@ export default function Conversations({ onUpdateUnread }: ConversationsProps) {
         naoLidas={naoLidas}
         selecionada={chaveAtiva}
         onSelecionar={selecionar}
+        onMarcarLida={marcarComoLida}
         busca={busca}
         onBuscaChange={setBusca}
         resultados={resultados}

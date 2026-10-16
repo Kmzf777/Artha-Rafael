@@ -431,3 +431,7 @@ Spec `docs/superpowers/specs/2026-10-15-fluxo-volta-rafael-design.md`.
 - ⏳ Não disparar `mkt_rtv_volta_01` em produção antes do merge desta branch: a
   `main` ainda roda o fluxo antigo (triagem em "Quero voltar", "Me conta o que
   travou" no botão 2).
+- ✅ (2026-10-16) Lida só quando a equipe age: abrir a conversa não marca mais.
+  Resposta de pessoa pela `/api/mensagens` grava a leitura e manda o visto azul
+  à Meta (falha só loga); o botão direito no card tem "Marcar como lida", só
+  no painel. Bot e fila de disparo não contam.

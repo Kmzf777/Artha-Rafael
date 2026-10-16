@@ -168,6 +168,19 @@ export async function enviarTemplate(
   })) as RespostaEnvio
 }
 
+/**
+ * Recibo de leitura: o lead vê o visto azul. A Meta marca junto todas as
+ * mensagens anteriores à indicada, então basta o wamid da última inbound. Só
+ * aceita mensagens dos últimos 30 dias — fora disso estoura `MetaError`, e quem
+ * decide se isso derruba algo é o chamador.
+ */
+export async function marcarComoLidaNaMeta(messageId: string): Promise<void> {
+  await chamar(`${env.phoneNumberId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ messaging_product: 'whatsapp', status: 'read', message_id: messageId }),
+  })
+}
+
 export type NumeroDaMeta = {
   display_phone_number: string
   verified_name: string

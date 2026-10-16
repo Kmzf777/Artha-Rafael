@@ -1,11 +1,17 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Inbox, Search } from 'lucide-react'
+import { CheckCheck, Inbox, Search } from 'lucide-react'
 import { MediaLabel } from '@/components/MediaLabel'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import Badge from '@/components/ui/badge'
 import { Chip } from '@/components/ui/chip'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ROTULO_MATCH, recortarTrecho } from '@/lib/buscaConversas'
@@ -20,6 +26,8 @@ type Props = {
   naoLidas: Record<string, number>
   selecionada: string | null
   onSelecionar: (conversa: Conversation) => void
+  /** Botão direito no card → "Marcar como lida". Só no painel; a Meta não sabe. */
+  onMarcarLida: (conversa: Conversation) => void
   busca: string
   onBuscaChange: (valor: string) => void
   /** `null` = sem busca ativa; `[]` = buscou e não achou nada. */
@@ -33,6 +41,7 @@ export default function ConversationList({
   naoLidas,
   selecionada,
   onSelecionar,
+  onMarcarLida,
   busca,
   onBuscaChange,
   resultados,
@@ -127,6 +136,7 @@ export default function ConversationList({
                   naoLidas={naoLidas[conversa.key] ?? 0}
                   selecionada={conversa.key === selecionada}
                   onSelecionar={onSelecionar}
+                  onMarcarLida={onMarcarLida}
                   achado={achado}
                   termo={busca}
                 />
@@ -144,6 +154,7 @@ function CardConversa({
   naoLidas,
   selecionada,
   onSelecionar,
+  onMarcarLida,
   achado,
   termo,
 }: {
@@ -151,6 +162,7 @@ function CardConversa({
   naoLidas: number
   selecionada: boolean
   onSelecionar: (conversa: Conversation) => void
+  onMarcarLida: (conversa: Conversation) => void
   achado: ResultadoBuscaConversa | null
   termo: string
 }) {
@@ -159,46 +171,56 @@ function CardConversa({
   const mostrarMotivo = achado !== null && achado.match_tipo !== 'nome'
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelecionar(conversa)}
-      aria-current={selecionada ? 'true' : undefined}
-      className={cn(
-        'flex w-full items-start gap-3 rounded-md px-2 py-3 text-left transition-colors',
-        selecionada ? 'bg-surface-pressed' : 'hover:bg-canvas-soft'
-      )}
-    >
-      <Avatar>
-        <AvatarFallback>{getInitials(conversa.contact_name, conversa.phone ?? '')}</AvatarFallback>
-      </Avatar>
+    <ContextMenu>
+      <ContextMenuTrigger>
+        <button
+          type="button"
+          onClick={() => onSelecionar(conversa)}
+          aria-current={selecionada ? 'true' : undefined}
+          className={cn(
+            'flex w-full items-start gap-3 rounded-md px-2 py-3 text-left transition-colors',
+            selecionada ? 'bg-surface-pressed' : 'hover:bg-canvas-soft'
+          )}
+        >
+          <Avatar>
+            <AvatarFallback>{getInitials(conversa.contact_name, conversa.phone ?? '')}</AvatarFallback>
+          </Avatar>
 
-      <span className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="flex items-baseline gap-2">
-          <span className="min-w-0 flex-1 truncate t-body-md-strong text-ink">{nome}</span>
-          <time className="tabular t-caption text-body" dateTime={conversa.last_message_time}>
-            {formatMsgTime(conversa.last_message_time)}
-          </time>
-        </span>
+          <span className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="flex items-baseline gap-2">
+              <span className="min-w-0 flex-1 truncate t-body-md-strong text-ink">{nome}</span>
+              <time className="tabular t-caption text-body" dateTime={conversa.last_message_time}>
+                {formatMsgTime(conversa.last_message_time)}
+              </time>
+            </span>
 
-        <span className="flex items-center gap-2">
-          <span
-            className={cn(
-              'min-w-0 flex-1 truncate t-body-sm',
-              naoLidas > 0 ? 'text-ink' : 'text-body'
+            <span className="flex items-center gap-2">
+              <span
+                className={cn(
+                  'min-w-0 flex-1 truncate t-body-sm',
+                  naoLidas > 0 ? 'text-ink' : 'text-body'
+                )}
+              >
+                {conversa.last_direction === 'outbound' && <span className="text-body">Você: </span>}
+                <MediaLabel type={conversa.last_message_type} content={conversa.last_message} />
+              </span>
+              <Badge count={naoLidas} />
+            </span>
+
+            {mostrarMotivo && (
+              <span className="truncate t-caption text-body">
+                {ROTULO_MATCH[achado.match_tipo]}: {recortarTrecho(achado.match_trecho, termo)}
+              </span>
             )}
-          >
-            {conversa.last_direction === 'outbound' && <span className="text-body">Você: </span>}
-            <MediaLabel type={conversa.last_message_type} content={conversa.last_message} />
           </span>
-          <Badge count={naoLidas} />
-        </span>
-
-        {mostrarMotivo && (
-          <span className="truncate t-caption text-body">
-            {ROTULO_MATCH[achado.match_tipo]}: {recortarTrecho(achado.match_trecho, termo)}
-          </span>
-        )}
-      </span>
-    </button>
+        </button>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem disabled={naoLidas === 0} onClick={() => onMarcarLida(conversa)}>
+          <CheckCheck aria-hidden />
+          Marcar como lida
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }

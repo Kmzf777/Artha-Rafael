@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { semNaoLida } from '@/lib/conversationReads'
 import type { Conversation, MensagemUI } from '@/lib/conversationTypes'
 import type { Message } from '@/mock/types'
 import { CHAVE_CONVERSAS, type ListaConversas } from './useConversations'
@@ -83,8 +84,10 @@ export function useMessageSender({ conv, acrescentar }: Args) {
       }
       acrescentar(enviada)
 
-      // O card da lista sobe para o topo com a nova última mensagem.
-      queryClient.setQueryData<ListaConversas>(CHAVE_CONVERSAS, (atual) => {
+      // O card da lista sobe para o topo com a nova última mensagem, e sai das
+      // não lidas: a rota de envio já gravou a leitura no servidor.
+      queryClient.setQueryData<ListaConversas>(CHAVE_CONVERSAS, (antes) => {
+        const atual = semNaoLida(antes, conv.key)
         if (!atual) return atual
         const existente = atual.conversas.find((c) => c.key === conv.key)
         if (!existente) return atual

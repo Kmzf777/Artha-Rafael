@@ -5,6 +5,7 @@ import {
   resolveLastRead,
   mergeReadMarks,
   computeUnreadCounts,
+  semNaoLida,
 } from './conversationReads'
 
 const T = (h: number, m = 0) => new Date(Date.UTC(2026, 6, 10, h, m)).toISOString()
@@ -136,5 +137,22 @@ describe('computeUnreadCounts', () => {
   it('ignora linhas sem identidade', () => {
     const rows = [row({ phone: null, bsuid: null })]
     expect(computeUnreadCounts(rows, {})).toEqual({})
+  })
+})
+
+describe('semNaoLida', () => {
+  const lista = { conversas: ['x'], naoLidas: { a: 2, b: 1 } }
+
+  it('tira a conversa do mapa de não lidas e preserva o resto', () => {
+    expect(semNaoLida(lista, 'a')).toEqual({ conversas: ['x'], naoLidas: { b: 1 } })
+  })
+
+  it('não muta o objeto do cache', () => {
+    semNaoLida(lista, 'a')
+    expect(lista.naoLidas).toEqual({ a: 2, b: 1 })
+  })
+
+  it('cache ainda vazio passa direto', () => {
+    expect(semNaoLida(undefined, 'a')).toBeUndefined()
   })
 })

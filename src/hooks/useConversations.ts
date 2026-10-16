@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { semNaoLida } from '@/lib/conversationReads'
 import type { Conversation } from '@/lib/conversationTypes'
 
 export const CHAVE_CONVERSAS = ['conversas'] as const
@@ -52,12 +53,7 @@ export function useMarcarLida() {
       api<{ ok: true }>(`/api/conversas/${encodeURIComponent(key)}/lida`, { method: 'POST' }),
     // Otimista: o badge some no clique, como já era com o servidor.
     onMutate: ({ key }) => {
-      queryClient.setQueryData<ListaConversas>(CHAVE_CONVERSAS, (atual) => {
-        if (!atual) return atual
-        const naoLidas = { ...atual.naoLidas }
-        delete naoLidas[key]
-        return { ...atual, naoLidas }
-      })
+      queryClient.setQueryData<ListaConversas>(CHAVE_CONVERSAS, (atual) => semNaoLida(atual, key))
     },
   })
 }
