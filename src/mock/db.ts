@@ -851,7 +851,7 @@ export const CAMPANHAS: Campanha[] = [
     template: 'reativacao_plano_cancelado',
     criadaEm: antes(52 * DIA),
     segmentoAlvo: 'artha',
-    enviados: 180, entregues: 171, respondidos: 63, qualificados: 24, convertidos: 9,
+    enviados: 180, entregues: 171, lidos: 150, respondidos: 63, qualificados: 24, convertidos: 9,
   },
   {
     id: 'camp_002',
@@ -859,7 +859,7 @@ export const CAMPANHAS: Campanha[] = [
     template: 'reativacao_acesso_parado',
     criadaEm: antes(34 * DIA),
     segmentoAlvo: 'artha',
-    enviados: 240, entregues: 228, respondidos: 82, qualificados: 31, convertidos: 11,
+    enviados: 240, entregues: 228, lidos: 200, respondidos: 82, qualificados: 31, convertidos: 11,
   },
   {
     id: 'camp_003',
@@ -867,7 +867,7 @@ export const CAMPANHAS: Campanha[] = [
     template: 'retomar_planejamento_anual',
     criadaEm: antes(19 * DIA),
     segmentoAlvo: 'artha',
-    enviados: 120, entregues: 116, respondidos: 44, qualificados: 19, convertidos: 8,
+    enviados: 120, entregues: 116, lidos: 100, respondidos: 44, qualificados: 19, convertidos: 8,
   },
   {
     id: 'camp_004',
@@ -875,7 +875,7 @@ export const CAMPANHAS: Campanha[] = [
     template: 'convite_diagnostico_gratuito',
     criadaEm: antes(11 * DIA),
     segmentoAlvo: 'todos',
-    enviados: 96, entregues: 90, respondidos: 27, qualificados: 12, convertidos: 4,
+    enviados: 96, entregues: 90, lidos: 78, respondidos: 27, qualificados: 12, convertidos: 4,
   },
   {
     id: 'camp_005',
@@ -883,7 +883,7 @@ export const CAMPANHAS: Campanha[] = [
     template: 'reativacao_plano_cancelado',
     criadaEm: antes(6 * DIA),
     segmentoAlvo: 'dhana',
-    enviados: 74, entregues: 71, respondidos: 26, qualificados: 11, convertidos: 5,
+    enviados: 74, entregues: 71, lidos: 62, respondidos: 26, qualificados: 11, convertidos: 5,
   },
   {
     id: 'camp_006',
@@ -891,7 +891,7 @@ export const CAMPANHAS: Campanha[] = [
     template: 'convite_diagnostico_gratuito',
     criadaEm: antes(3 * DIA),
     segmentoAlvo: 'lucia',
-    enviados: 32, entregues: 31, respondidos: 12, qualificados: 6, convertidos: 2,
+    enviados: 32, entregues: 31, lidos: 27, respondidos: 12, qualificados: 6, convertidos: 2,
   },
 ]
 

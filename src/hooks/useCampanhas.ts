@@ -92,6 +92,7 @@ export function useEnfileirarCampanha() {
         segmentoAlvo: args.segmentoAlvo,
         enviados: 0,
         entregues: 0,
+        lidos: 0,
         respondidos: 0,
         qualificados: 0,
         convertidos: 0,
