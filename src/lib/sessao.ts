@@ -5,8 +5,9 @@
 // (Edge e Node 18+), então o mesmo módulo serve o middleware e as rotas.
 //
 // Não há tabela de usuários: a credencial principal é compartilhada pela equipe
-// (ver `AccountInfo`), e `PAINEL_CONTAS` só acrescenta pares usuário/senha. O token não carrega identidade — carrega validade. Contas
-// por pessoa são o recorte B5.
+// (ver `AccountInfo`), e `PAINEL_CONTAS` só acrescenta pares usuário/senha.
+// O token não carrega identidade — carrega validade. Contas por pessoa são o
+// recorte B5.
 
 const enc = new TextEncoder()
 
