@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Registrar o template `mkt_rtv_volta_02` (trials sem Open Finance, oferta R$49) e fazer "Quero voltar" mandar o link de cupom do template a que o toque responde. Sem submeter à Meta e sem importar leads.
+**Goal:** Registrar o template `mkt_rtv_volta_02` (trials sem Open Finance, oferta R$47) e fazer "Quero voltar" mandar o link de cupom do template a que o toque responde. Sem submeter à Meta e sem importar leads.
 
 **Architecture:** Dado e regra pura em `src/lib/bot/` (`roteiro.ts` guarda o rascunho e `LINK_CUPOM_POR_TEMPLATE`; `campanhaDoToque.ts` escolhe a campanha pelo histórico). O executor só busca `campanhas.template` e passa o link a `mensagensTerminais`.
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Corpo do template exatamente o da spec §2 (R$49).
+- Corpo do template exatamente o da spec §2 (R$47).
 - Copy (CLAUDE.md): sem travessão nem meia-risca, sem dois-pontos introduzindo frase, sem markdown, sem persona.
 - `mensagensTerminais` do volta_01 idêntico ao de hoje: `[LINK_CUPOM, frase]`, com `LINK_CUPOM = 'https://buy.stripe.com/9B6aEW9vi3iz4z6bwAd7q0c'`.
 - Não rodar `scripts/criar-template.ts` nem `scripts/importar-leads.ts`.
@@ -27,7 +27,7 @@
 
 ---
 
-### Task 1: Corpo R$49, mapa de links e `mensagensTerminais` com link
+### Task 1: Corpo R$47, mapa de links e `mensagensTerminais` com link
 
 **Files:** Modify `src/lib/bot/roteiro.ts`; Test `src/lib/bot/roteiro.test.ts`
 
@@ -37,15 +37,15 @@
 - `mensagensTerminais(idP1, idP2, primeiroNome, linkCupom: string = LINK_CUPOM): string[]`
 
 - [ ] **Step 1: Testes que falham**
-  - Corpo do volta_02 com "fica R$49 em vez de R$197".
+  - Corpo do volta_02 com "fica R$47 em vez de R$197".
   - `LINK_CUPOM` igual ao literal atual; `LINK_CUPOM_POR_TEMPLATE.mkt_rtv_volta_01` é `LINK_CUPOM`.
-  - Guard do volta_02: `toMatch(/^https:\/\/\S+$/)` e não a home (vermelho até o link chegar).
+  - Guard do volta_02: `toMatch(/^https:\/\/\S+$/)`, não a home, e igual a `https://buy.stripe.com/00wdR8cHudXd8PmeIMd7q06?prefilled_promo_code=150UNICO`.
   - `linkCupomDoTemplate`: `'mkt_rtv_volta_01'`, `null`, `'mkt_rtv_isencao_01'`, `'constructor'` → `LINK_CUPOM`; `'mkt_rtv_volta_02'` → valor do mapa.
   - `mensagensTerminais('rtv:voltar', null, 'Rafael', LINK_CUPOM)` igual a sem o 4º argumento.
   - `mensagensTerminais('rtv:voltar', null, 'Rafael', '')` → `[FECHO]`; outros ids ignoram o link.
 - [ ] **Step 2:** `npx vitest run src/lib/bot/roteiro.test.ts` → FAIL (exports ausentes, corpo R$97).
 - [ ] **Step 3:** Implementar. Link vazio em `rtv:voltar` devolve `[FECHO]`.
-- [ ] **Step 4:** Mesmo comando → só o guard do volta_02 vermelho.
+- [ ] **Step 4:** Mesmo comando → PASS.
 
 ### Task 2: `campanhaDoToque` e o executor
 
@@ -63,8 +63,8 @@
 
 ### Task 3: ROADMAP e verificação
 
-- [ ] Linha do volta_02 no `ROADMAP.md` passa a dizer R$49, link por template, bloqueio do link vazio (guard vermelho trava o merge) e os dois comandos:
+- [ ] Linha do volta_02 no `ROADMAP.md` passa a dizer R$47, link por template, que falta só submeter e importar, e os dois comandos:
   - `npx tsx scripts/criar-template.ts mkt_rtv_volta_02`
   - `IMPORT_CONFIRMO=sim npx tsx scripts/importar-leads.ts <csv> rtv-lote-2026-10-sof`
-- [ ] `npm test` (só o guard do volta_02 vermelho), `npx tsc --noEmit`, `npx eslint src scripts`, `npm run build`.
+- [ ] `npm test`, `npx tsc --noEmit`, `npx eslint src scripts`, `npm run build`.
 - [ ] Commits por task, PT-BR.

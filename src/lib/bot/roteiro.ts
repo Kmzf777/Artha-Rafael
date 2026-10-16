@@ -202,7 +202,7 @@ export const TEMPLATES_RTV = {
     '',
     'O Artha junta todos os seus bancos num lugar só e mostra cada gasto, sem planilha. Seu teste acabou, mas a gente guardou uma condição pra você voltar.',
     '',
-    'A taxa de adesão de R$100 sai de graça e o primeiro mês fica R$49 em vez de R$197. E a gente te ajuda a conectar seus bancos, o que leva 2 minutos.',
+    'A taxa de adesão de R$100 sai de graça e o primeiro mês fica R$47 em vez de R$197. E a gente te ajuda a conectar seus bancos, o que leva 2 minutos.',
     '',
     'Essa condição vale só hoje. Toque em Quero voltar e o link já chega com o desconto.',
   ]),
@@ -210,15 +210,14 @@ export const TEMPLATES_RTV = {
 
 /**
  * O link de cupom de cada template, porque a oferta muda por template: o
- * volta_01 dá R$97, o volta_02 dá R$49. Spec 2026-10-16 §3.1.
+ * volta_01 dá R$97, o volta_02 dá R$47 (cupom de R$150 sobre R$197, link do
+ * cliente em 2026-10-16). Spec 2026-10-16 §3.1.
  *
- * O volta_02 fica VAZIO até o cliente mandar o link de R$49, e um teste fica
- * vermelho até lá. Vazio em produção não vira mensagem vazia: ver
- * `mensagensTerminais`.
+ * Um link vazio aqui não vira mensagem vazia: ver `mensagensTerminais`.
  */
 export const LINK_CUPOM_POR_TEMPLATE: Record<string, string> = {
   mkt_rtv_volta_01: LINK_CUPOM,
-  mkt_rtv_volta_02: '',
+  mkt_rtv_volta_02: 'https://buy.stripe.com/00wdR8cHudXd8PmeIMd7q06?prefilled_promo_code=150UNICO',
 }
 
 /**

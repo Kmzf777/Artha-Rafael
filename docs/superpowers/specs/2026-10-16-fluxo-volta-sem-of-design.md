@@ -1,8 +1,9 @@
 # Fluxo de volta para quem não conectou banco (`mkt_rtv_volta_02`) — design
 
 **Data:** 2026-10-16
-**Estado:** aprovado pelo dono em 2026-10-16; oferta de R$49 aprovada pelo
-cliente no mesmo dia. Falta o link de cupom de R$49 e a lista de leads.
+**Estado:** aprovado pelo dono em 2026-10-16. O cliente mandou o link no mesmo
+dia e corrigiu o preço: cupom de R$150 na primeira mensalidade, de R$197 para
+R$47. Falta submeter à Meta e importar a lista.
 
 ---
 
@@ -23,7 +24,7 @@ Oi, {{1}}. Você sabe pra onde foi o seu dinheiro este mês?
 
 O Artha junta todos os seus bancos num lugar só e mostra cada gasto, sem planilha. Seu teste acabou, mas a gente guardou uma condição pra você voltar.
 
-A taxa de adesão de R$100 sai de graça e o primeiro mês fica R$49 em vez de R$197. E a gente te ajuda a conectar seus bancos, o que leva 2 minutos.
+A taxa de adesão de R$100 sai de graça e o primeiro mês fica R$47 em vez de R$197. E a gente te ajuda a conectar seus bancos, o que leva 2 minutos.
 
 Essa condição vale só hoje. Toque em Quero voltar e o link já chega com o desconto.
 ```
@@ -35,7 +36,7 @@ mesmas frases, mesmas tags. `componentesDeBotao` dá o mesmo payload a todo
 template de `TEMPLATES_RTV`, então o toque cai nos mesmos terminais.
 
 A única diferença é o **link** que "Quero voltar" manda: o cupom do volta_02 é de
-R$49, outro link do Stripe, ainda não entregue.
+R$150 (primeiro mês R$47), outro link do Stripe.
 
 ### 3.1 Link por template
 
@@ -44,7 +45,7 @@ R$49, outro link do Stripe, ainda não entregue.
 | Template | Link |
 |---|---|
 | `mkt_rtv_volta_01` | `LINK_CUPOM` (o atual, R$97), byte a byte |
-| `mkt_rtv_volta_02` | `''` até o cliente mandar |
+| `mkt_rtv_volta_02` | `https://buy.stripe.com/00wdR8cHudXd8PmeIMd7q06?prefilled_promo_code=150UNICO` |
 
 `linkCupomDoTemplate(template)` devolve o link do mapa, e `LINK_CUPOM` para
 template fora do mapa ou desconhecido (`null`). Isso preserva o comportamento de
@@ -75,14 +76,16 @@ mais no `select` (`message_id`, `reply_to_message_id`). Uma consulta nova só: o
 Template no mapa com link `''`: "Quero voltar" **não manda mensagem vazia** nem
 a frase "clicar no link acima" sem link. Manda o `FECHO` ("Já passei para a
 equipe da Artha…"): a equipe manda o link à mão. A tag e a qualificação não
-mudam. É rede de segurança; o guard da §3.4 já impede o merge.
+mudam. É rede de segurança: o guard da §3.4 impede que um link vazio chegue à main.
 
 ### 3.4 Guard
 
 Como o do volta_01: o link do volta_02 tem de ser `https://`, sozinho, e não a
-home. **Fica vermelho até o link chegar**, de propósito: trava o merge. O guard
+home. Ficou vermelho até o cliente mandar o link (2026-10-16), de propósito. O guard
 do volta_01 continua verde e passa a conferir também que o mapa aponta para o
-mesmo `LINK_CUPOM`.
+mesmo `LINK_CUPOM`. O regex `^https:\/\/\S+$` aceita a query string
+`?prefilled_promo_code=…` (não tem espaço), então o guard não precisou mudar;
+o teste também fixa o link exato.
 
 ## 4. Fora do escopo (de propósito)
 
@@ -95,5 +98,5 @@ mesmo `LINK_CUPOM`.
 
 ## 5. Como se verifica
 
-`npm test` verde exceto o guard do link do volta_02; `npx tsc --noEmit`,
-`npx eslint src scripts` e `npm run build` verdes.
+`npm test`, `npx tsc --noEmit`, `npx eslint src scripts` e `npm run build`
+verdes.

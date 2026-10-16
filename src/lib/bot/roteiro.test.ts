@@ -362,7 +362,7 @@ describe('mkt_rtv_volta_02 (sem Open Finance)', () => {
     '',
     'O Artha junta todos os seus bancos num lugar só e mostra cada gasto, sem planilha. Seu teste acabou, mas a gente guardou uma condição pra você voltar.',
     '',
-    'A taxa de adesão de R$100 sai de graça e o primeiro mês fica R$49 em vez de R$197. E a gente te ajuda a conectar seus bancos, o que leva 2 minutos.',
+    'A taxa de adesão de R$100 sai de graça e o primeiro mês fica R$47 em vez de R$197. E a gente te ajuda a conectar seus bancos, o que leva 2 minutos.',
     '',
     'Essa condição vale só hoje. Toque em Quero voltar e o link já chega com o desconto.',
   ].join('\n')
@@ -377,12 +377,14 @@ describe('mkt_rtv_volta_02 (sem Open Finance)', () => {
   })
 
   it('o link do volta_02 é uma URL https, sozinha', () => {
-    // Spec 2026-10-16 §3.4. VERMELHO até o cliente mandar o link de R$49, de
-    // propósito: é a trava do merge. Sem ele "o link já chega com o desconto" é
-    // falso.
+    // Spec 2026-10-16 §3.4. Sem ele "o link já chega com o desconto" é falso.
     const link = LINK_CUPOM_POR_TEMPLATE.mkt_rtv_volta_02
     expect(link).toMatch(/^https:\/\/\S+$/)
     expect(link).not.toMatch(/^https:\/\/(www\.)?artha\.ia\.br\/?$/)
+    // O link do cliente (2026-10-16), com o cupom de R$150 na query string.
+    expect(link).toBe('https://buy.stripe.com/00wdR8cHudXd8PmeIMd7q06?prefilled_promo_code=150UNICO')
+    expect(link).not.toBe(LINK_CUPOM)
+    expect(mensagensTerminais('rtv:voltar', null, 'Ana', link)[0]).toBe(link)
   })
 
   it('o toque cai nos mesmos terminais do volta_01', () => {

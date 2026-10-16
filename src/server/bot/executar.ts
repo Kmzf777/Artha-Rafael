@@ -122,7 +122,7 @@ export async function executarBot(gatilho: Gatilho): Promise<void> {
     const lead = gatilho.leadId ? await buscarLead(gatilho.leadId) : null
     const nome = lead ? valorDoCampo('nome', lead, new Date()) : null
     // O link de cupom é do template a que o toque responde (volta_01 R$97,
-    // volta_02 R$49). Só "Quero voltar" manda link. Spec 2026-10-16 §3.
+    // volta_02 R$47). Só "Quero voltar" manda link. Spec 2026-10-16 §3.
     let link = LINK_CUPOM
     if ((passo.idP2 ?? passo.idP1) === 'rtv:voltar') {
       const campanha = campanhaDoToque(historico, gatilho.messageId)

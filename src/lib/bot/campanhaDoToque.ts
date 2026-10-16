@@ -2,7 +2,7 @@
 // Spec 2026-10-16 §3.2.
 //
 // Existe porque o link de cupom muda por template (volta_01 R$97, volta_02
-// R$49) e o payload do botão é o mesmo nos dois: `rtv:voltar`.
+// R$47) e o payload do botão é o mesmo nos dois: `rtv:voltar`.
 
 /** O mínimo de mensagem que a escolha precisa. */
 export type MensagemToque = {
