@@ -102,6 +102,21 @@ export function mergeReadMarks(...sources: ReadMarks[]): ReadMarks {
 }
 
 /**
+ * A lista do cache sem a pendência de uma conversa. É o otimista de quem zera a
+ * não lida (marcar como lida, envio humano): cópia nova, nunca mutação, porque o
+ * react-query compara por referência para decidir se re-renderiza.
+ */
+export function semNaoLida<T extends { naoLidas: Record<string, number> }>(
+  atual: T | undefined,
+  key: string
+): T | undefined {
+  if (!atual) return atual
+  const naoLidas = { ...atual.naoLidas }
+  delete naoLidas[key]
+  return { ...atual, naoLidas }
+}
+
+/**
  * Contadores de não lidas por chave de card: inbound estritamente mais novo que
  * a marca de leitura resolvida (com fallback às chaves legadas). Chaves sem
  * pendência ficam fora do mapa.

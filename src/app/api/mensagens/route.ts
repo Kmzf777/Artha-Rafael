@@ -3,12 +3,46 @@
 // cache velho e o botão habilitado. Critério de aceitação 6.
 import { NextResponse } from 'next/server'
 import { telNorm11, toBrazilPhone } from '@/lib/phoneUtils'
-import { enviarTexto, MetaError } from '@/server/meta/client'
+import { ultimaInboundComWamid } from '@/lib/vistoAzul'
+import { enviarTexto, marcarComoLidaNaMeta, MetaError } from '@/server/meta/client'
 import { buscarLeadPorTelefone } from '@/server/repo/leads'
-import { inserirMensagem, janelaAberta } from '@/server/repo/mensagens'
+import {
+  inserirMensagem,
+  janelaAberta,
+  marcarCardLido,
+  mensagensDoCard,
+} from '@/server/repo/mensagens'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+/**
+ * Pessoa da equipe respondeu: a conversa está lida dos dois lados. O lead ganha
+ * o visto azul na Meta e o card sai das não lidas no painel.
+ *
+ * Só esta rota faz isso. A resposta do bot e o disparo da fila não passam por
+ * aqui de propósito: não são alguém lendo a conversa.
+ *
+ * Nada aqui derruba o envio, que a Meta já aceitou e o banco já gravou. Uma
+ * falha virando 5xx faria o operador reenviar e o lead receber em dobro — por
+ * isso cada passo só loga e segue.
+ */
+async function marcarLidaPelaEquipe(key: string): Promise<void> {
+  try {
+    await marcarCardLido(key)
+  } catch (e) {
+    console.error('[mensagens] falha ao gravar a leitura do card', e)
+  }
+
+  try {
+    // Sem inbound com wamid (só outbound, ou linha legada) não há o que marcar.
+    const alvo = ultimaInboundComWamid(await mensagensDoCard(key))
+    // Mensagem com mais de 30 dias a Meta recusa: cai neste mesmo log.
+    if (alvo) await marcarComoLidaNaMeta(alvo)
+  } catch (e) {
+    console.error('[mensagens] falha ao mandar o recibo de leitura à Meta', e)
+  }
+}
 
 export async function POST(req: Request) {
   const { key, telefone, texto, enviadoPor } = (await req.json()) as {
@@ -66,6 +100,8 @@ export async function POST(req: Request) {
       status: 'enviado',
       ...autoria,
     })
+
+    await marcarLidaPelaEquipe(key)
 
     return NextResponse.json({ ok: true, message_id: wamid })
   } catch (e) {
