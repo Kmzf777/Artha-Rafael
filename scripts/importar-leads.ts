@@ -1,6 +1,8 @@
 // Importa a base de leads de um CSV para a tabela `leads`.
 //
-// Rodar: IMPORT_CONFIRMO=sim npx tsx scripts/importar-leads.ts leads-rtv.csv
+// Rodar: IMPORT_CONFIRMO=sim npx tsx scripts/importar-leads.ts leads-rtv.csv [tag-do-lote]
+//
+// A tag do lote é o 2º argumento; sem ele vale `rtv-lote-2026-09`.
 //
 // O CSV é `nome,email,telefone` com cabeçalho. Telefone em qualquer formato —
 // `telNorm11` resolve o nono dígito ausente, que é como a base do cliente veio.
@@ -19,9 +21,8 @@ import { telNorm11, toBrazilPhone } from '../src/lib/phoneUtils'
  * cria lead com `plano_status` no default `trial_expirado`, então filtrar por
  * estado alcançaria todo mundo que já escreveu para o número.
  */
-const TAG_LOTE = 'rtv-lote-2026-09'
-
 const caminho = process.argv[2]
+const TAG_LOTE = process.argv[3] || 'rtv-lote-2026-09'
 
 if (process.env.IMPORT_CONFIRMO !== 'sim') {
   console.error(
