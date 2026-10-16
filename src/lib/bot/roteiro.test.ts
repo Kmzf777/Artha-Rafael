@@ -21,7 +21,7 @@ import {
   ehIdRtv,
   TEMPLATES_RTV,
 } from './roteiro'
-import { validarTemplate } from '../templates'
+import { componentesDeBotao, validarTemplate } from '../templates'
 
 const TODAS = [P1, ...Object.values(P2_POR_RAMO)]
 
@@ -285,8 +285,8 @@ describe('terminais do ramo rtv', () => {
 describe('variantes de disparo', () => {
   const VARIANTES = Object.entries(TEMPLATES_RTV)
 
-  it('são quatro', () => {
-    expect(VARIANTES).toHaveLength(4)
+  it('são cinco', () => {
+    expect(VARIANTES).toHaveLength(5)
   })
 
   it('a chave do registro é o nome do template', () => {
@@ -342,11 +342,43 @@ describe('variantes de disparo', () => {
       ...RTV_IDS.flatMap((id) => mensagensTerminais(id, null, 'Ana')),
     ]
     for (const t of textos) {
-      expect(t, 'sem travessão').not.toMatch(/—/)
+      expect(t, 'sem travessão').not.toMatch(TRAVESSAO)
+      expect(t, 'sem dois-pontos introduzindo frase').not.toMatch(/:(\s|$)/m)
       expect(t, 'sem markdown').not.toMatch(/\*|_{2}|#/)
       for (const linha of t.split('\n')) {
         if (linha.includes('http')) expect(linha.trim()).toMatch(/^https?:\/\/\S+$/)
       }
     }
+  })
+})
+
+describe('mkt_rtv_volta_02 (sem Open Finance)', () => {
+  // Spec 2026-10-16. Corpo exato aprovado pelo dono; trocar uma vírgula aqui é
+  // trocar o texto que vai para a Meta.
+  const CORPO = [
+    'Oi, {{1}}. Você sabe pra onde foi o seu dinheiro este mês?',
+    '',
+    'O Artha junta todos os seus bancos num lugar só e mostra cada gasto, sem planilha. Seu teste acabou, mas a gente guardou uma condição pra você voltar.',
+    '',
+    'A taxa de adesão de R$100 sai de graça e o primeiro mês fica R$97 em vez de R$197. E a gente te ajuda a conectar seus bancos, o que leva 2 minutos.',
+    '',
+    'Essa condição vale só hoje. Toque em Quero voltar e o link já chega com o desconto.',
+  ].join('\n')
+
+  it('tem o corpo aprovado', () => {
+    expect(TEMPLATES_RTV.mkt_rtv_volta_02?.corpo).toBe(CORPO)
+  })
+
+  it('não afirma que o lead conectou banco', () => {
+    // O público não tem Open Finance confirmado. "Você conectou" é o volta_01.
+    expect(TEMPLATES_RTV.mkt_rtv_volta_02?.corpo).not.toMatch(/conectou|reconectar/i)
+  })
+
+  it('o toque cai nos mesmos terminais do volta_01', () => {
+    // O bot roteia pelo payload do botão. Mesmo payload, mesmo terminal.
+    const payloads = componentesDeBotao('mkt_rtv_volta_02').map((c) => c.parameters[0])
+    expect(payloads).toEqual(RTV_IDS.map((id) => ({ type: 'payload', payload: id })))
+    expect(componentesDeBotao('mkt_rtv_volta_02')).toEqual(componentesDeBotao('mkt_rtv_volta_01'))
+    expect(mensagensTerminais('rtv:voltar', null, 'Ana')[0]).toBe(LINK_CUPOM)
   })
 })

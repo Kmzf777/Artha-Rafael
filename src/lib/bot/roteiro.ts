@@ -194,6 +194,18 @@ export const TEMPLATES_RTV = {
     '',
     'A taxa de adesão de R$100 a gente tirou pra você voltar. O primeiro mês sai R$97 em vez de R$197, e a gente te acompanha na hora de reconectar, o que leva 2 minutos.',
   ]),
+
+  // Trials expirados SEM Open Finance confirmado, 2026-10-16. Não afirma banco
+  // conectado: parte do público conectou e caiu. Spec 2026-10-16.
+  mkt_rtv_volta_02: rascunhoRtv('mkt_rtv_volta_02', [
+    'Oi, {{1}}. Você sabe pra onde foi o seu dinheiro este mês?',
+    '',
+    'O Artha junta todos os seus bancos num lugar só e mostra cada gasto, sem planilha. Seu teste acabou, mas a gente guardou uma condição pra você voltar.',
+    '',
+    'A taxa de adesão de R$100 sai de graça e o primeiro mês fica R$97 em vez de R$197. E a gente te ajuda a conectar seus bancos, o que leva 2 minutos.',
+    '',
+    'Essa condição vale só hoje. Toque em Quero voltar e o link já chega com o desconto.',
+  ]),
 }
 
 /**

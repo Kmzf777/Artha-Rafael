@@ -435,3 +435,4 @@ Spec `docs/superpowers/specs/2026-10-15-fluxo-volta-rafael-design.md`.
   Resposta de pessoa pela `/api/mensagens` grava a leitura e manda o visto azul
   à Meta (falha só loga); o botão direito no card tem "Marcar como lida", só
   no painel. Bot e fila de disparo não contam.
+- ⏳ (2026-10-16) `mkt_rtv_volta_02` (trials sem Open Finance, mesmos botões e respostas do volta_01) registrado em `TEMPLATES_RTV`, não submetido: falta o cliente confirmar a oferta e mandar a lista. Depois, `npx tsx scripts/criar-template.ts mkt_rtv_volta_02` (com o nome; sem ele submete todas) e `IMPORT_CONFIRMO=sim npx tsx scripts/importar-leads.ts <csv> rtv-lote-2026-10-sof`. Spec `docs/superpowers/specs/2026-10-16-fluxo-volta-sem-of-design.md`.
