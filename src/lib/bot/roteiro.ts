@@ -202,10 +202,34 @@ export const TEMPLATES_RTV = {
     '',
     'O Artha junta todos os seus bancos num lugar só e mostra cada gasto, sem planilha. Seu teste acabou, mas a gente guardou uma condição pra você voltar.',
     '',
-    'A taxa de adesão de R$100 sai de graça e o primeiro mês fica R$97 em vez de R$197. E a gente te ajuda a conectar seus bancos, o que leva 2 minutos.',
+    'A taxa de adesão de R$100 sai de graça e o primeiro mês fica R$49 em vez de R$197. E a gente te ajuda a conectar seus bancos, o que leva 2 minutos.',
     '',
     'Essa condição vale só hoje. Toque em Quero voltar e o link já chega com o desconto.',
   ]),
+}
+
+/**
+ * O link de cupom de cada template, porque a oferta muda por template: o
+ * volta_01 dá R$97, o volta_02 dá R$49. Spec 2026-10-16 §3.1.
+ *
+ * O volta_02 fica VAZIO até o cliente mandar o link de R$49, e um teste fica
+ * vermelho até lá. Vazio em produção não vira mensagem vazia: ver
+ * `mensagensTerminais`.
+ */
+export const LINK_CUPOM_POR_TEMPLATE: Record<string, string> = {
+  mkt_rtv_volta_01: LINK_CUPOM,
+  mkt_rtv_volta_02: '',
+}
+
+/**
+ * Template fora do mapa, ou não descoberto, fica com o link de sempre: é o que
+ * todo toque recebia antes do mapa existir. `Object.hasOwn` pelo mesmo motivo
+ * de `componentesDeBotao`.
+ */
+export function linkCupomDoTemplate(template: string | null): string {
+  return template && Object.hasOwn(LINK_CUPOM_POR_TEMPLATE, template)
+    ? LINK_CUPOM_POR_TEMPLATE[template]
+    : LINK_CUPOM
 }
 
 /**
@@ -314,16 +338,22 @@ function vocativo(primeiroNome: string | null): string {
  * fallback para FECHO cobre quem encaminha e qualquer id que entre na árvore sem
  * resposta: falha para a frase de espera, nunca para o silêncio.
  *
+ * `linkCupom` é o do template respondido (`linkCupomDoTemplate`). Vazio, "Quero
+ * voltar" entrega a gente com o FECHO: nem mensagem em branco, nem "link acima"
+ * sem link. Spec 2026-10-16 §3.3.
+ *
  * Mora aqui, e não dentro de `executar.ts`, para ser testável sem banco, sem
  * Meta e sem `server-only`.
  */
 export function mensagensTerminais(
   idP1: string | null,
   idP2: string | null,
-  primeiroNome: string | null
+  primeiroNome: string | null,
+  linkCupom: string = LINK_CUPOM
 ): string[] {
   const id = idP2 ?? idP1
+  if (id === 'rtv:voltar' && !linkCupom) return [FECHO]
   // Replacer em função: com string, `$&` e similares no nome seriam interpretados.
   const texto = ((id ? RESPOSTA_POR_ID[id] : undefined) ?? FECHO).replace('{vocativo}', () => vocativo(primeiroNome))
-  return id === 'rtv:voltar' ? [LINK_CUPOM, texto] : [texto]
+  return id === 'rtv:voltar' ? [linkCupom, texto] : [texto]
 }

@@ -15,6 +15,8 @@ import {
   REPETICAO,
   mensagensTerminais,
   LINK_CUPOM,
+  LINK_CUPOM_POR_TEMPLATE,
+  linkCupomDoTemplate,
   ehIdConhecido,
   RTV_IDS,
   RTV_BOTOES,
@@ -360,7 +362,7 @@ describe('mkt_rtv_volta_02 (sem Open Finance)', () => {
     '',
     'O Artha junta todos os seus bancos num lugar só e mostra cada gasto, sem planilha. Seu teste acabou, mas a gente guardou uma condição pra você voltar.',
     '',
-    'A taxa de adesão de R$100 sai de graça e o primeiro mês fica R$97 em vez de R$197. E a gente te ajuda a conectar seus bancos, o que leva 2 minutos.',
+    'A taxa de adesão de R$100 sai de graça e o primeiro mês fica R$49 em vez de R$197. E a gente te ajuda a conectar seus bancos, o que leva 2 minutos.',
     '',
     'Essa condição vale só hoje. Toque em Quero voltar e o link já chega com o desconto.',
   ].join('\n')
@@ -374,11 +376,63 @@ describe('mkt_rtv_volta_02 (sem Open Finance)', () => {
     expect(TEMPLATES_RTV.mkt_rtv_volta_02?.corpo).not.toMatch(/conectou|reconectar/i)
   })
 
+  it('o link do volta_02 é uma URL https, sozinha', () => {
+    // Spec 2026-10-16 §3.4. VERMELHO até o cliente mandar o link de R$49, de
+    // propósito: é a trava do merge. Sem ele "o link já chega com o desconto" é
+    // falso.
+    const link = LINK_CUPOM_POR_TEMPLATE.mkt_rtv_volta_02
+    expect(link).toMatch(/^https:\/\/\S+$/)
+    expect(link).not.toMatch(/^https:\/\/(www\.)?artha\.ia\.br\/?$/)
+  })
+
   it('o toque cai nos mesmos terminais do volta_01', () => {
     // O bot roteia pelo payload do botão. Mesmo payload, mesmo terminal.
     const payloads = componentesDeBotao('mkt_rtv_volta_02').map((c) => c.parameters[0])
     expect(payloads).toEqual(RTV_IDS.map((id) => ({ type: 'payload', payload: id })))
     expect(componentesDeBotao('mkt_rtv_volta_02')).toEqual(componentesDeBotao('mkt_rtv_volta_01'))
     expect(mensagensTerminais('rtv:voltar', null, 'Ana')[0]).toBe(LINK_CUPOM)
+  })
+})
+
+describe('link de cupom por template', () => {
+  it('o volta_01 continua com o link de hoje, byte a byte', () => {
+    expect(LINK_CUPOM).toBe('https://buy.stripe.com/9B6aEW9vi3iz4z6bwAd7q0c')
+    expect(LINK_CUPOM_POR_TEMPLATE.mkt_rtv_volta_01).toBe(LINK_CUPOM)
+    expect(linkCupomDoTemplate('mkt_rtv_volta_01')).toBe(LINK_CUPOM)
+  })
+
+  it('template fora do mapa ou desconhecido usa o link de hoje', () => {
+    // Rascunhos antigos, simulação sem campanha e campanha que não se achou.
+    for (const t of [null, '', 'mkt_rtv_isencao_01', 'modelo_teste']) {
+      expect(linkCupomDoTemplate(t), String(t)).toBe(LINK_CUPOM)
+    }
+  })
+
+  it('não confunde herança de protótipo com template do mapa', () => {
+    for (const t of ['constructor', 'toString', '__proto__']) {
+      expect(linkCupomDoTemplate(t), t).toBe(LINK_CUPOM)
+    }
+  })
+
+  it('o volta_02 usa o próprio link', () => {
+    expect(linkCupomDoTemplate('mkt_rtv_volta_02')).toBe(LINK_CUPOM_POR_TEMPLATE.mkt_rtv_volta_02)
+  })
+
+  it('o link passado sai antes da frase', () => {
+    expect(mensagensTerminais('rtv:voltar', null, 'Rafael', LINK_CUPOM)).toEqual(
+      mensagensTerminais('rtv:voltar', null, 'Rafael')
+    )
+    expect(mensagensTerminais('rtv:voltar', null, 'Rafael', 'https://x.test/c')[0]).toBe('https://x.test/c')
+  })
+
+  it('link vazio nunca vira mensagem vazia nem "link acima" sem link', () => {
+    // Spec 2026-10-16 §3.3: entrega a gente, que manda o link à mão.
+    expect(mensagensTerminais('rtv:voltar', null, 'Rafael', '')).toEqual([FECHO])
+  })
+
+  it('os outros terminais ignoram o link', () => {
+    for (const id of ['rtv:problema', 'rtv:sair']) {
+      expect(mensagensTerminais(id, null, 'Ana', ''), id).toEqual(mensagensTerminais(id, null, 'Ana'))
+    }
   })
 })
