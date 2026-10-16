@@ -61,6 +61,7 @@ Os valores estão no `.env.local`, que não vai para o git.
 | `WEBHOOK_VERIFY_TOKEN` | você inventa; cola igual no painel da Meta |
 | `CRON_SECRET` | você gera; a Vercel manda como `Authorization: Bearer` |
 | `PAINEL_USUARIO` / `PAINEL_SENHA` | **obrigatórias em produção** — ver §5 |
+| `PAINEL_CONTAS` | opcional — contas extras `usuario:senha;usuario:senha`, ver §5 |
 | `DISPARO_LIMITE_DIARIO` | `250` |
 | `GRAPH_API_VERSION` | `v21.0` |
 
@@ -146,6 +147,15 @@ localhost, inaceitável em produção.
 
 Isto é medida mínima até o B5 trazer contas por pessoa. Hoje a equipe
 compartilha uma credencial, e por isso nenhuma ação fica atribuída a um nome.
+
+**Acesso para mais alguém sem entregar a credencial principal:** `PAINEL_CONTAS`,
+opcional, com pares `usuario:senha` separados por `;` (cada par divide no
+primeiro `:`, então a senha pode conter `:`; entrada malformada é ignorada).
+O login aceita a principal ou qualquer uma dessas. A sessão continua assinada
+com `PAINEL_SENHA` e não guarda qual conta entrou, então **tirar uma conta de
+`PAINEL_CONTAS` impede logins novos, mas não derruba a sessão já aberta** (dura
+até 12h). Para derrubar na hora, troque `PAINEL_SENHA`, o que derruba todas.
+Mudança de variável na Vercel só vale depois de um redeploy.
 
 ## 6. Disparo em massa (opcional — não é preciso para mensagens)
 
