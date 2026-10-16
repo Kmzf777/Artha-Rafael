@@ -2,6 +2,7 @@
 // A conversa é DERIVADA de `messages` pela mesma `conversationKey` que o
 // frontend usa — replicá-la em tabela criaria duas fontes de verdade. Spec §4.2.
 import 'server-only'
+import type { MensagemToque } from '@/lib/bot/campanhaDoToque'
 import type { MensagemBot } from '@/lib/bot/estado'
 import { AUTOR_BOT } from '@/lib/bot/roteiro'
 import { conversationKey } from '@/lib/conversationKey'
@@ -69,10 +70,11 @@ export async function mensagensDoCard(key: string): Promise<MensagemUI[]> {
 export async function historicoParaBot(
   phone: string,
   phoneId: string | null
-): Promise<MensagemBot[]> {
+): Promise<(MensagemBot & MensagemToque)[]> {
   let q = db()
     .from('messages')
-    .select('direction,created_at,message_type,content,button_id,enviado_por,campanha_id')
+    // `message_id` e `reply_to_message_id` são de `campanhaDoToque`.
+    .select('direction,created_at,message_type,content,button_id,enviado_por,campanha_id,message_id,reply_to_message_id')
     .eq('phone', phone)
     // `id` desempata, como em `listarLeads`. O timestamp da Meta tem resolução
     // de SEGUNDO (`webhookParse` faz `ts * 1000`), então dois toques rápidos no
@@ -93,7 +95,7 @@ export async function historicoParaBot(
 
   const { data, error } = await q
   if (error) throw new Error(`historicoParaBot: ${error.message}`)
-  return (data ?? []) as MensagemBot[]
+  return (data ?? []) as (MensagemBot & MensagemToque)[]
 }
 
 /**

@@ -7,11 +7,14 @@
 //   · 2026-08-24 §3.6 e §4.2 — a trava de concorrência e o ponto de entrada.
 //   · 2026-08-25 §4.3 e §4.4 — a escolha da resposta e o corpo da repetição.
 import 'server-only'
+import { campanhaDoToque } from '@/lib/bot/campanhaDoToque'
 import { proximoPasso } from '@/lib/bot/estado'
 import {
   AUTOR_BOT,
   ehIdRtv,
   ID_OPTOUT,
+  LINK_CUPOM,
+  linkCupomDoTemplate,
   mensagensTerminais,
   REPETICAO,
   SEGMENTO_POR_P1,
@@ -21,6 +24,7 @@ import { valorDoCampo } from '@/lib/disparos'
 import { getWindowStatus } from '@/lib/janela24h'
 import type { Segmento } from '@/mock/types'
 import { enviarBotoes, enviarTexto } from '../meta/client'
+import { templateDaCampanha } from '../repo/campanhas'
 import { buscarLead, qualificarLead } from '../repo/leads'
 import { historicoParaBot, inserirMensagem } from '../repo/mensagens'
 import { db } from '../supabase'
@@ -117,7 +121,14 @@ export async function executarBot(gatilho: Gatilho): Promise<void> {
     // vai antes da frase que diz "clicar no link acima". Spec 2026-10-15 §3.
     const lead = gatilho.leadId ? await buscarLead(gatilho.leadId) : null
     const nome = lead ? valorDoCampo('nome', lead, new Date()) : null
-    for (const texto of mensagensTerminais(passo.idP1, passo.idP2, nome)) {
+    // O link de cupom é do template a que o toque responde (volta_01 R$97,
+    // volta_02 R$49). Só "Quero voltar" manda link. Spec 2026-10-16 §3.
+    let link = LINK_CUPOM
+    if ((passo.idP2 ?? passo.idP1) === 'rtv:voltar') {
+      const campanha = campanhaDoToque(historico, gatilho.messageId)
+      link = linkCupomDoTemplate(campanha ? await templateDaCampanha(campanha) : null)
+    }
+    for (const texto of mensagensTerminais(passo.idP1, passo.idP2, nome, link)) {
       const resposta = await enviarTexto(gatilho.phone, texto)
       await gravarSaida(gatilho, resposta.messages[0]?.id ?? null, texto, 'text')
     }

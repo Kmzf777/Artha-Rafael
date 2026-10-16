@@ -217,3 +217,10 @@ export async function listarCampanhas(): Promise<Campanha[]> {
   }
   return resultado
 }
+
+/** O template de uma campanha, para o bot escolher o link de cupom. Spec 2026-10-16 §3.2. */
+export async function templateDaCampanha(id: string): Promise<string | null> {
+  const { data, error } = await db().from('campanhas').select('template').eq('id', id).maybeSingle()
+  if (error) throw new Error(`templateDaCampanha: ${error.message}`)
+  return (data?.template as string | undefined) ?? null
+}
