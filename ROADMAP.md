@@ -383,6 +383,9 @@ perguntar, e o painel em produção servir esta branch.
   não entregue pelo cliente. Inclui login com papéis: hoje a tela de login é
   decorativa (`src/app/(auth)/login/page.tsx` só navega, não autentica), e o
   painel não pode ir para a internet antes disso.
+  Paliativo em 2026-10-16: `PAINEL_CONTAS` (opcional) aceita contas extras
+  `usuario:senha;...` no login, para dar acesso ao Rafael sem a credencial
+  principal. Sem identidade na sessão e sem revogação imediata; ver DEPLOY.md §5.
 - **B4 — agente de IA.** Depende do JSON exportado do n8n e das três bases de
   conhecimento (Lúcia/Clara/LucIA — nome ainda em aberto), nenhum entregue.
 - **Realtime do Supabase** no lugar do polling atual (spec §3.3) — troca

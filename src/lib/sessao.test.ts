@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { COOKIE_SESSAO, criarSessao, senhaConfere, sessaoValida } from './sessao'
+import {
+  COOKIE_SESSAO,
+  credencialConfere,
+  criarSessao,
+  lerContas,
+  senhaConfere,
+  sessaoValida,
+} from './sessao'
 
 const SEGREDO = 'segredo-de-teste'
 const AGORA = 1_787_400_000_000
@@ -49,6 +56,49 @@ describe('senhaConfere', () => {
     // decisão do middleware, não desta função.
     expect(await senhaConfere('', '')).toBe(false)
     expect(await senhaConfere('qualquer', '')).toBe(false)
+  })
+})
+
+describe('lerContas', () => {
+  it('sem PAINEL_CONTAS não há conta extra', () => {
+    expect(lerContas(undefined)).toEqual([])
+    expect(lerContas('')).toEqual([])
+  })
+
+  it('separa as contas por ponto e vírgula e cada par no primeiro dois-pontos', () => {
+    expect(lerContas('rafael:abc123;outro:x:y:z')).toEqual([
+      { usuario: 'rafael', senha: 'abc123' },
+      { usuario: 'outro', senha: 'x:y:z' },
+    ])
+  })
+
+  it('apara espaços nas pontas e ignora entrada vazia ou malformada', () => {
+    expect(lerContas(' rafael : abc ;; semdoispontos; :semusuario; semsenha: ;;')).toEqual([
+      { usuario: 'rafael', senha: 'abc' },
+    ])
+  })
+})
+
+describe('credencialConfere', () => {
+  const CONTAS = [
+    { usuario: 'equipe', senha: 'principal' },
+    { usuario: 'rafael', senha: 'abc:123' },
+  ]
+
+  it('aceita qualquer conta da lista', async () => {
+    expect(await credencialConfere('equipe', 'principal', CONTAS)).toBe(true)
+    expect(await credencialConfere('rafael', 'abc:123', CONTAS)).toBe(true)
+  })
+
+  it('recusa usuário de uma conta com a senha de outra', async () => {
+    expect(await credencialConfere('rafael', 'principal', CONTAS)).toBe(false)
+    expect(await credencialConfere('equipe', 'abc:123', CONTAS)).toBe(false)
+  })
+
+  it('recusa usuário inexistente, senha errada e lista vazia', async () => {
+    expect(await credencialConfere('ninguem', 'principal', CONTAS)).toBe(false)
+    expect(await credencialConfere('rafael', 'errada', CONTAS)).toBe(false)
+    expect(await credencialConfere('', '', [])).toBe(false)
   })
 })
 

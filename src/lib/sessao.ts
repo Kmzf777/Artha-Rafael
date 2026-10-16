@@ -4,8 +4,8 @@
 // runtime Edge, onde os módulos do Node não existem. Web Crypto está nos dois
 // (Edge e Node 18+), então o mesmo módulo serve o middleware e as rotas.
 //
-// Não há tabela de usuários: a credencial é uma só, compartilhada pela equipe
-// (ver `AccountInfo`). O token não carrega identidade — carrega validade. Contas
+// Não há tabela de usuários: a credencial principal é compartilhada pela equipe
+// (ver `AccountInfo`), e `PAINEL_CONTAS` só acrescenta pares usuário/senha. O token não carrega identidade — carrega validade. Contas
 // por pessoa são o recorte B5.
 
 const enc = new TextEncoder()
@@ -75,6 +75,48 @@ export async function sessaoValida(
 export async function senhaConfere(digitada: string, esperada: string): Promise<boolean> {
   if (!esperada) return false
   return iguais(digitada, esperada)
+}
+
+export type Conta = { usuario: string; senha: string }
+
+/**
+ * Contas extras de `PAINEL_CONTAS`: `usuario:senha` separadas por `;`. Cada
+ * par divide no PRIMEIRO `:`, então a senha pode conter `:`. Entrada vazia,
+ * sem `:`, sem usuário ou sem senha é ignorada.
+ *
+ * Servem para dar acesso a alguém sem entregar a credencial principal. O
+ * token continua assinado com `PAINEL_SENHA` e não carrega quem entrou: tirar
+ * uma conta daqui impede logins novos, mas a sessão já aberta dura até expirar
+ * (12h). Para derrubar todas na hora, troca-se `PAINEL_SENHA`.
+ */
+export function lerContas(texto: string | undefined): Conta[] {
+  const contas: Conta[] = []
+  for (const entrada of (texto ?? '').split(';')) {
+    const corte = entrada.indexOf(':')
+    if (corte < 0) continue
+    const usuario = entrada.slice(0, corte).trim()
+    const senha = entrada.slice(corte + 1).trim()
+    if (usuario && senha) contas.push({ usuario, senha })
+  }
+  return contas
+}
+
+/**
+ * A credencial confere com alguma das contas. Compara contra TODAS, usuário e
+ * senha, sem parar na primeira: o tempo de resposta não pode revelar qual
+ * usuário existe.
+ */
+export async function credencialConfere(usuario: string, senha: string, contas: Conta[]): Promise<boolean> {
+  const resultados = await Promise.all(
+    contas.map(async (c) => {
+      const [okUsuario, okSenha] = await Promise.all([
+        senhaConfere(usuario, c.usuario),
+        senhaConfere(senha, c.senha),
+      ])
+      return okUsuario && okSenha
+    })
+  )
+  return resultados.some(Boolean)
 }
 
 export const COOKIE_SESSAO = 'artha_sessao'
