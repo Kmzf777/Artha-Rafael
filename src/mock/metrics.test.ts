@@ -295,7 +295,8 @@ describe('as métricas derivadas', () => {
       expect(t).toBeLessThanOrEqual(1)
     }
     expect(campanhas.entregues).toBeLessThanOrEqual(campanhas.enviados)
-    expect(campanhas.respondidos).toBeLessThanOrEqual(campanhas.entregues)
+    expect(campanhas.lidos).toBeLessThanOrEqual(campanhas.entregues)
+    expect(campanhas.respondidos).toBeLessThanOrEqual(campanhas.lidos)
     expect(campanhas.qualificados).toBeLessThanOrEqual(campanhas.respondidos)
     expect(campanhas.convertidos).toBeLessThanOrEqual(campanhas.qualificados)
   })

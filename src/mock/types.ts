@@ -76,6 +76,7 @@ export type Campanha = {
   segmentoAlvo: Segmento | 'todos'
   enviados: number
   entregues: number
+  lidos: number
   respondidos: number
   /** Leads que a campanha levou até a etapa `qualificado`. */
   qualificados: number
