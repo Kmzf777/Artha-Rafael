@@ -21,8 +21,9 @@ import { telNorm11, toBrazilPhone } from '../src/lib/phoneUtils'
  * cria lead com `plano_status` no default `trial_expirado`, então filtrar por
  * estado alcançaria todo mundo que já escreveu para o número.
  */
-const caminho = process.argv[2]
 const TAG_LOTE = process.argv[3] || 'rtv-lote-2026-09'
+
+const caminho = process.argv[2]
 
 if (process.env.IMPORT_CONFIRMO !== 'sim') {
   console.error(
