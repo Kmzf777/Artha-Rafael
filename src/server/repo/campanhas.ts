@@ -2,6 +2,7 @@
 // Campanhas e a fila de agendamentos. Spec §4.2.
 import 'server-only'
 import type { Agendamento, Campanha, Lead } from '@/mock/types'
+import { contarFunilEntrega } from '@/lib/funilCampanha'
 import { paraDominio } from './leads'
 import { db } from '../supabase'
 
@@ -188,8 +189,7 @@ export async function listarCampanhas(): Promise<Campanha[]> {
   for (const c of campanhas ?? []) {
     const id = c.id as string
     const { data: msgs } = await db().from('messages').select('status,lead_id').eq('campanha_id', id)
-    const enviados = msgs?.length ?? 0
-    const entregues = msgs?.filter((m) => m.status === 'entregue' || m.status === 'lido').length ?? 0
+    const { enviados, entregues, lidos } = contarFunilEntrega(msgs ?? [])
     const alvos = new Set((msgs ?? []).map((m) => m.lead_id).filter(Boolean) as string[])
 
     // `respondidos` é gente, não mensagem: um lead que responde cinco vezes
@@ -212,7 +212,7 @@ export async function listarCampanhas(): Promise<Campanha[]> {
       id, nome: c.nome as string, template: c.template as string,
       criadaEm: c.criada_em as string,
       segmentoAlvo: c.segmento_alvo as Campanha['segmentoAlvo'],
-      enviados, entregues, respondidos: respondentes.size, qualificados, convertidos,
+      enviados, entregues, lidos, respondidos: respondentes.size, qualificados, convertidos,
     })
   }
   return resultado

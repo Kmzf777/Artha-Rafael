@@ -146,6 +146,7 @@ export type Metrics = {
     total: number
     enviados: number
     entregues: number
+    lidos: number
     respondidos: number
     qualificados: number
     convertidos: number
@@ -257,11 +258,12 @@ export function getMetrics(dados: DadosMetrics, agora: Date): Metrics {
     (acc, c) => ({
       enviados: acc.enviados + c.enviados,
       entregues: acc.entregues + c.entregues,
+      lidos: acc.lidos + c.lidos,
       respondidos: acc.respondidos + c.respondidos,
       qualificados: acc.qualificados + c.qualificados,
       convertidos: acc.convertidos + c.convertidos,
     }),
-    { enviados: 0, entregues: 0, respondidos: 0, qualificados: 0, convertidos: 0 }
+    { enviados: 0, entregues: 0, lidos: 0, respondidos: 0, qualificados: 0, convertidos: 0 }
   )
 
   const porStatusAgendamento = zeros(STATUS_AGENDAMENTO)
